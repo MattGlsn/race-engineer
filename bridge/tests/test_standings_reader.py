@@ -43,9 +43,9 @@ def test_read_positions(mock_sdk: MagicMock) -> None:
     snapshot = reader.read_snapshot()
 
     assert snapshot.drivers == (
-        DriverStanding(car_idx=3, position=1, laps=None),
-        DriverStanding(car_idx=0, position=2, laps=None),
-        DriverStanding(car_idx=7, position=3, laps=None),
+        DriverStanding(car_idx=3, position=1, laps=None, class_position=None, class_id=None),
+        DriverStanding(car_idx=0, position=2, laps=None, class_position=None, class_id=None),
+        DriverStanding(car_idx=7, position=3, laps=None, class_position=None, class_id=None),
     )
     mock_sdk.freeze_var_buffer_latest.assert_called_once()
     mock_sdk.unfreeze_var_buffer_latest.assert_called_once()
@@ -81,8 +81,8 @@ def test_read_lap_counts(mock_sdk: MagicMock) -> None:
     snapshot = reader.read_snapshot()
 
     assert snapshot.drivers == (
-        DriverStanding(car_idx=0, position=1, laps=12),
-        DriverStanding(car_idx=5, position=2, laps=11),
+        DriverStanding(car_idx=0, position=1, laps=12, class_position=None, class_id=None),
+        DriverStanding(car_idx=5, position=2, laps=11, class_position=None, class_id=None),
     )
 
 
@@ -95,7 +95,66 @@ def test_missing_lap_array_returns_none_laps(mock_sdk: MagicMock) -> None:
 
     snapshot = reader.read_snapshot()
 
-    assert snapshot.drivers == (DriverStanding(car_idx=2, position=1, laps=None),)
+    assert snapshot.drivers == (
+        DriverStanding(
+            car_idx=2,
+            position=1,
+            laps=None,
+            class_position=None,
+            class_id=None,
+        ),
+    )
+
+
+def test_read_class_positions_multiclass(mock_sdk: MagicMock) -> None:
+    _connected_sdk(mock_sdk)
+    positions = [0] * 64
+    positions[1] = 2
+    positions[4] = 1
+    positions[9] = 3
+    class_positions = [0] * 64
+    class_positions[1] = 1
+    class_positions[4] = 1
+    class_positions[9] = 2
+    class_ids = [0] * 64
+    class_ids[1] = 0
+    class_ids[4] = 1
+    class_ids[9] = 1
+    _var_map(
+        mock_sdk,
+        {
+            "CarIdxPosition": positions,
+            "CarIdxClassPosition": class_positions,
+            "CarIdxClass": class_ids,
+        },
+    )
+    reader = StandingsReader(sdk=mock_sdk)
+
+    snapshot = reader.read_snapshot()
+
+    assert snapshot.drivers == (
+        DriverStanding(
+            car_idx=4,
+            position=1,
+            laps=None,
+            class_position=1,
+            class_id=1,
+        ),
+        DriverStanding(
+            car_idx=1,
+            position=2,
+            laps=None,
+            class_position=1,
+            class_id=0,
+        ),
+        DriverStanding(
+            car_idx=9,
+            position=3,
+            laps=None,
+            class_position=2,
+            class_id=1,
+        ),
+    )
 
 
 def test_unfreeze_called_on_read_error(mock_sdk: MagicMock) -> None:

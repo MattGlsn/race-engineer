@@ -25,12 +25,19 @@ class StandingsReader:
                 return StandingsSnapshot()
 
             laps = self._read_int_array(var.CAR_IDX_LAP_COMPLETED)
+            class_positions = self._read_int_array(var.CAR_IDX_CLASS_POSITION)
+            class_ids = self._read_int_array(var.CAR_IDX_CLASS)
 
             drivers = [
                 DriverStanding(
                     car_idx=car_idx,
                     position=position,
                     laps=self._lap_count_for_car(laps, car_idx),
+                    class_position=self._class_position_for_car(
+                        class_positions,
+                        car_idx,
+                    ),
+                    class_id=self._class_id_for_car(class_ids, car_idx),
                 )
                 for car_idx, position in enumerate(positions[:MAX_CARS])
                 if position > 0
@@ -65,6 +72,28 @@ class StandingsReader:
 
         lap_count = laps[car_idx]
         return lap_count if lap_count >= 0 else None
+
+    def _class_position_for_car(
+        self,
+        class_positions: list[int] | None,
+        car_idx: int,
+    ) -> int | None:
+        if class_positions is None or car_idx >= len(class_positions):
+            return None
+
+        class_position = class_positions[car_idx]
+        return class_position if class_position > 0 else None
+
+    def _class_id_for_car(
+        self,
+        class_ids: list[int] | None,
+        car_idx: int,
+    ) -> int | None:
+        if class_ids is None or car_idx >= len(class_ids):
+            return None
+
+        class_id = class_ids[car_idx]
+        return class_id if class_id >= 0 else None
 
     def _read_raw(self, name: str) -> Any | None:
         try:

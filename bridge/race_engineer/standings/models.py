@@ -8,6 +8,8 @@ class DriverStanding:
     car_idx: int
     position: int
     laps: int | None = None
+    class_position: int | None = None
+    class_id: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
