@@ -22,6 +22,20 @@ cd bridge
 python -m pytest tests/ -v
 ```
 
+## API
+
+Start the FastAPI server locally:
+
+```bash
+cd bridge
+uvicorn race_engineer.api.app:app --reload
+```
+
+- Health check: `GET http://127.0.0.1:8000/health`
+- Interactive docs: `http://127.0.0.1:8000/docs`
+
+Optional: set `CORS_ORIGINS` (comma-separated) to override default localhost origins.
+
 ## Usage
 
 ```python
