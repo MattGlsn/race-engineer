@@ -164,6 +164,11 @@ button {
   color: var(--text);
 }
 
+.sidebar-nav__link:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .status-cards {
   display: flex;
   flex-wrap: wrap;

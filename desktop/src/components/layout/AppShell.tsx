@@ -13,7 +13,7 @@ export function AppShell({ bridge, children }: AppShellProps) {
   return (
     <div className="app-shell">
       <aside className="app-shell__sidebar">
-        <SidebarNav />
+        <SidebarNav activeId="dashboard" />
       </aside>
       <header className="app-shell__header">
         <StatusCards bridge={bridge} />
