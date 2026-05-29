@@ -1,20 +1,12 @@
 import type { RaceStateData } from "../../types/bridge";
 import { formatPosition } from "../../utils/format";
+import { MetricRow } from "./MetricRow";
 import { WidgetCard } from "./WidgetCard";
 
 type PositionWidgetProps = {
   raceState: RaceStateData | null;
   dataLive: boolean;
 };
-
-function MetricRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="metric-row">
-      <span className="metric-row__label">{label}</span>
-      <span className="metric-row__value">{value}</span>
-    </div>
-  );
-}
 
 export function PositionWidget({ raceState, dataLive }: PositionWidgetProps) {
   const player = raceState?.player;

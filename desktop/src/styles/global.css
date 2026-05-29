@@ -91,6 +91,19 @@ button {
   color: var(--text-muted);
 }
 
+.widget-card--stale {
+  opacity: 0.72;
+}
+
+.widget-card__stale-banner {
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  font-size: 0.8125rem;
+  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 12%, transparent);
+  border-bottom: 1px solid var(--border);
+}
+
 .widget-card__body {
   padding: var(--space-4);
   flex: 1;

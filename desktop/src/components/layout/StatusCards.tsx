@@ -18,7 +18,12 @@ function formatRaceStateAge(ts: number | null): string {
 export function StatusCards({ bridge }: StatusCardsProps) {
   const bridgeTone = bridge.bridgeConnected ? "ok" : "error";
   const sdkTone = bridge.sdkConnected ? "ok" : bridge.bridgeConnected ? "warn" : "error";
-  const raceTone = bridge.lastRaceStateAt != null ? "ok" : "warn";
+  const raceTone =
+    bridge.bridgeConnected && bridge.sdkConnected && bridge.lastRaceStateAt != null
+      ? "ok"
+      : bridge.bridgeConnected
+        ? "warn"
+        : "error";
 
   return (
     <div className="status-cards">
@@ -39,7 +44,11 @@ export function StatusCards({ bridge }: StatusCardsProps) {
       <div className={`status-card status-card--${raceTone}`}>
         <span className="status-card__label">Race state</span>
         <span className="status-card__value">
-          {formatRaceStateAge(bridge.lastRaceStateAt)}
+          {!bridge.bridgeConnected
+            ? "Disconnected"
+            : !bridge.sdkConnected
+              ? "Waiting for SDK"
+              : formatRaceStateAge(bridge.lastRaceStateAt)}
         </span>
       </div>
       {bridge.lastError ? (

@@ -1,21 +1,13 @@
 import type { RaceStateData } from "../../types/bridge";
 import { formatLapTime } from "../../utils/format";
 import { findPlayerStanding } from "../../utils/raceState";
+import { MetricRow } from "./MetricRow";
 import { WidgetCard } from "./WidgetCard";
 
 type LapTimingWidgetProps = {
   raceState: RaceStateData | null;
   dataLive: boolean;
 };
-
-function MetricRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="metric-row">
-      <span className="metric-row__label">{label}</span>
-      <span className="metric-row__value">{value}</span>
-    </div>
-  );
-}
 
 export function LapTimingWidget({ raceState, dataLive }: LapTimingWidgetProps) {
   const standing = findPlayerStanding(raceState);

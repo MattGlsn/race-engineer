@@ -1,5 +1,6 @@
 import type { RaceStateData } from "../../types/bridge";
 import { formatLiters } from "../../utils/format";
+import { MetricRow } from "./MetricRow";
 import { WidgetCard } from "./WidgetCard";
 
 type FuelWidgetProps = {
@@ -7,16 +8,7 @@ type FuelWidgetProps = {
   dataLive: boolean;
 };
 
-function MetricRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="metric-row">
-      <span className="metric-row__label">{label}</span>
-      <span className="metric-row__value">{value}</span>
-    </div>
-  );
-}
-
-export function FuelWidget({ raceState }: FuelWidgetProps) {
+export function FuelWidget({ raceState, dataLive }: FuelWidgetProps) {
   const consumption = raceState?.fuel_consumption;
   const projection = raceState?.fuel_projection;
 
