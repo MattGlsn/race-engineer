@@ -60,3 +60,22 @@ class SdkConnectionService:
         )
         self._state = ConnectionState.DISCONNECTED
         return False
+
+    def _sdk_is_healthy(self) -> bool:
+        return bool(self._sdk.is_initialized and self._sdk.is_connected)
+
+    def check_health(self) -> bool:
+        """Verify the SDK session is still live; reset state when connection is lost."""
+        if self._state != ConnectionState.CONNECTED:
+            return False
+
+        if self._sdk_is_healthy():
+            return True
+
+        logger.warning("iRacing SDK connection lost")
+        try:
+            self._sdk.shutdown()
+        except Exception:
+            logger.exception("Error shutting down SDK after health check failure")
+        self._state = ConnectionState.DISCONNECTED
+        return False
