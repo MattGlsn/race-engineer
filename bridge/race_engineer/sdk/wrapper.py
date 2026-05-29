@@ -18,6 +18,9 @@ class IrSdkClient(Protocol):
 
     def unfreeze_var_buffer_latest(self) -> None: ...
 
+    @property
+    def var_headers_names(self) -> list[str]: ...
+
     def __getitem__(self, key: str) -> Any: ...
 
 
@@ -52,3 +55,13 @@ class IrSdkWrapper:
             return self._sdk[name]
         except (KeyError, TypeError):
             return None
+
+    def list_variable_names(self) -> list[str]:
+        """Return SDK telemetry variable names when connected."""
+        if not self.is_connected:
+            return []
+
+        try:
+            return list(self._sdk.var_headers_names)
+        except Exception:
+            return []

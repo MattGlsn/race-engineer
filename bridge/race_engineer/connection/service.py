@@ -2,6 +2,10 @@ import logging
 import time
 from typing import Any
 
+from race_engineer.availability.checker import VariableAvailabilityChecker
+from race_engineer.availability.models import VariableAvailabilityReport
+from race_engineer.availability.report import log_report
+from race_engineer.availability.scanner import VariableScanner
 from race_engineer.connection.state import ConnectionState
 from race_engineer.sdk.wrapper import IrSdkWrapper
 
@@ -60,6 +64,7 @@ class SdkConnectionService:
         if started and self._sdk.is_initialized and self._sdk.is_connected:
             self._state = ConnectionState.CONNECTED
             logger.info("Connected to iRacing SDK")
+            self._check_variable_availability()
             return True
 
         logger.warning(
@@ -115,6 +120,13 @@ class SdkConnectionService:
 
     def _sdk_is_healthy(self) -> bool:
         return self._sdk.is_initialized and self._sdk.is_connected
+
+    def _check_variable_availability(self) -> VariableAvailabilityReport:
+        scanner = VariableScanner(sdk=self._sdk)
+        checker = VariableAvailabilityChecker()
+        report = checker.check(scanner.scan())
+        log_report(report)
+        return report
 
     def check_health(self) -> bool:
         """Verify the SDK session is still live; reset state when connection is lost."""
