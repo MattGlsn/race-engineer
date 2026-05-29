@@ -6,6 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from race_engineer.api.config import get_cors_origins
 from race_engineer.api.routes.health import router as health_router
+from race_engineer.api.routes.ws import router as ws_router
+from race_engineer.api.ws import WebSocketConnectionManager
 from race_engineer.connection import SdkConnectionService
 
 
@@ -33,7 +35,9 @@ def create_app(connection_service: SdkConnectionService | None = None) -> FastAP
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.state.ws_manager = WebSocketConnectionManager()
     app.include_router(health_router)
+    app.include_router(ws_router)
     return app
 
 

@@ -37,6 +37,10 @@ class SdkConnectionService:
     def is_connected(self) -> bool:
         return self._state == ConnectionState.CONNECTED
 
+    @property
+    def sdk(self) -> IrSdkWrapper:
+        return self._sdk
+
     def as_dict(self) -> dict[str, Any]:
         """Expose connection state for API consumers."""
         return {
