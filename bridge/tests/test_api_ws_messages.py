@@ -55,6 +55,13 @@ def test_build_race_state_message() -> None:
         "gap_seconds": None,
         "distance_meters": None,
     }
+    assert message["data"]["fuel_consumption"] == {
+        "last_lap": None,
+        "last_lap_usage": None,
+        "rolling_avg_usage": None,
+        "valid_lap_count": 0,
+        "fuel_at_lap_start": None,
+    }
 
 
 def test_build_race_state_message_with_gap_ahead() -> None:
