@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 
+from race_engineer.gap import variables as gap_vars
 from race_engineer.position import variables as position_vars
 from race_engineer.standings import variables as standings_vars
 from race_engineer.telemetry import variables as telemetry_vars
@@ -27,7 +28,8 @@ OPTIONAL_VARIABLES: tuple[str, ...] = tuple(
     sorted(
         set(
             _collect_module_variables(standings_vars)
-            + _collect_module_variables(position_vars),
+            + _collect_module_variables(position_vars)
+            + _collect_module_variables(gap_vars),
         ),
     ),
 )

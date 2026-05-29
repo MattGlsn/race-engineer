@@ -6,6 +6,7 @@ from race_engineer.api.ws.manager import WebSocketConnectionManager
 from race_engineer.api.ws.messages import build_race_state_message, build_telemetry_message
 from race_engineer.connection import SdkConnectionService
 from race_engineer.session import SessionInfoReader
+from race_engineer.gap import GapAheadCalculator
 from race_engineer.position import PositionCalculator
 from race_engineer.standings import StandingsReader
 from race_engineer.telemetry import TelemetryVariableReader
@@ -27,6 +28,7 @@ class TelemetryBroadcaster:
         session_reader: SessionInfoReader | None = None,
         standings_reader: StandingsReader | None = None,
         position_calculator: PositionCalculator | None = None,
+        gap_calculator: GapAheadCalculator | None = None,
         telemetry_interval: float = TELEMETRY_INTERVAL_SECONDS,
         race_state_interval: float | None = RACE_STATE_INTERVAL_SECONDS,
     ) -> None:
@@ -51,6 +53,11 @@ class TelemetryBroadcaster:
             position_calculator
             if position_calculator is not None
             else PositionCalculator(sdk=connection_service.sdk)
+        )
+        self._gap_calculator = (
+            gap_calculator
+            if gap_calculator is not None
+            else GapAheadCalculator(sdk=connection_service.sdk)
         )
         self._telemetry_interval = telemetry_interval
         self._race_state_interval = race_state_interval
@@ -93,11 +100,13 @@ class TelemetryBroadcaster:
                         session = self._session_reader.read()
                         standings = self._standings_reader.read_snapshot()
                         player_position = self._position_calculator.calculate()
+                        gap_ahead = self._gap_calculator.calculate()
                         await self._manager.broadcast(
                             build_race_state_message(
                                 session,
                                 standings,
                                 player_position,
+                                gap_ahead,
                             ),
                         )
 
