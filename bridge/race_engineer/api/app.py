@@ -1,3 +1,5 @@
+import asyncio
+import logging
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
@@ -24,16 +26,28 @@ from race_engineer.voice.stt.config import load_elevenlabs_stt_config
 from race_engineer.voice.tts.client import ElevenLabsTtsClient
 from race_engineer.voice.tts.config import load_elevenlabs_tts_config
 from race_engineer.voice.audio.volume import load_voice_volume_config
+from race_engineer.voice.hotkey.errors import HotkeyRegistrationError
+from race_engineer.voice.hotkey.service import VoiceHotkeyService
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     connection_service = app.state.connection_service
     broadcaster = app.state.broadcaster
+    hotkey_service: VoiceHotkeyService | None = app.state.hotkey_service
     await broadcaster.start()
+    if hotkey_service is not None:
+        try:
+            hotkey_service.start(asyncio.get_running_loop())
+        except HotkeyRegistrationError:
+            logger.exception("voice hotkey listener failed to start")
     try:
         yield
     finally:
+        if hotkey_service is not None:
+            hotkey_service.stop()
         await broadcaster.stop()
         connection_service.disconnect()
 
@@ -44,6 +58,7 @@ def create_app(
     broadcaster: TelemetryBroadcaster | None = None,
     voice_pipeline: VoicePipeline | None = None,
     engineer_voice: EngineerVoiceService | None = None,
+    hotkey_service: VoiceHotkeyService | None = None,
 ) -> FastAPI:
     app = FastAPI(
         title="Race Engineer Bridge API",
@@ -73,11 +88,17 @@ def create_app(
             fuel_tracker=fuel_tracker,
         )
 
+    resolved_voice_pipeline = voice_pipeline or _build_voice_pipeline()
+
     app.state.connection_service = resolved_connection_service
     app.state.ws_manager = resolved_ws_manager
     app.state.broadcaster = resolved_broadcaster
-    app.state.voice_pipeline = voice_pipeline or _build_voice_pipeline()
+    app.state.voice_pipeline = resolved_voice_pipeline
     app.state.engineer_voice = engineer_voice or _build_engineer_voice()
+    app.state.hotkey_service = hotkey_service or _build_hotkey_service(
+        resolved_voice_pipeline,
+        resolved_ws_manager,
+    )
     app.add_middleware(
         CORSMiddleware,
         allow_origins=get_cors_origins(),
@@ -96,6 +117,15 @@ def _build_voice_pipeline() -> VoicePipeline | None:
     if config is None:
         return None
     return VoicePipeline(ElevenLabsSttClient(config))
+
+
+def _build_hotkey_service(
+    voice_pipeline: VoicePipeline | None,
+    ws_manager: WebSocketConnectionManager,
+) -> VoiceHotkeyService | None:
+    if voice_pipeline is None:
+        return None
+    return VoiceHotkeyService(voice_pipeline, ws_manager)
 
 
 def _build_engineer_voice() -> EngineerVoiceService | None:
