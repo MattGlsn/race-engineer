@@ -76,6 +76,13 @@ def mock_gap_behind_calculator() -> MagicMock:
 
 
 @pytest.fixture
+def mock_lap_reader() -> MagicMock:
+    reader = MagicMock()
+    reader.read_laps_completed.return_value = 0
+    return reader
+
+
+@pytest.fixture
 def mock_telemetry_reader() -> MagicMock:
     reader = MagicMock()
     reader.read_snapshot.return_value = TelemetrySnapshot(
@@ -101,6 +108,7 @@ def broadcaster(
     mock_position_calculator: MagicMock,
     mock_gap_calculator: MagicMock,
     mock_gap_behind_calculator: MagicMock,
+    mock_lap_reader: MagicMock,
 ) -> TelemetryBroadcaster:
     return TelemetryBroadcaster(
         ws_manager,
@@ -111,6 +119,7 @@ def broadcaster(
         position_calculator=mock_position_calculator,
         gap_calculator=mock_gap_calculator,
         gap_behind_calculator=mock_gap_behind_calculator,
+        lap_reader=mock_lap_reader,
         telemetry_interval=0.01,
         race_state_interval=0.01,
     )
@@ -222,3 +231,4 @@ def test_websocket_broadcasts_race_state(
         "gap_seconds": None,
         "distance_meters": None,
     }
+    assert race_state["data"]["fuel_consumption"]["valid_lap_count"] == 0

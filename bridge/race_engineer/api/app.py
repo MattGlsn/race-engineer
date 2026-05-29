@@ -12,6 +12,9 @@ from race_engineer.connection import SdkConnectionService
 from race_engineer.session import SessionInfoReader
 from race_engineer.position import PositionCalculator
 from race_engineer.standings import StandingsReader
+from race_engineer.fuel import FuelConsumptionTracker
+from race_engineer.storage.database import connect
+from race_engineer.storage.fuel_repository import FuelLapRepository
 from race_engineer.telemetry import TelemetryVariableReader
 
 
@@ -45,6 +48,9 @@ def create_app(
         ws_manager if ws_manager is not None else WebSocketConnectionManager()
     )
     sdk = resolved_connection_service.sdk
+    db_connection = connect()
+    fuel_repository = FuelLapRepository(db_connection)
+    fuel_tracker = FuelConsumptionTracker(repository=fuel_repository)
     resolved_broadcaster = broadcaster
     if resolved_broadcaster is None:
         resolved_broadcaster = TelemetryBroadcaster(
@@ -54,6 +60,7 @@ def create_app(
             SessionInfoReader(sdk=sdk),
             StandingsReader(sdk=sdk),
             PositionCalculator(sdk=sdk),
+            fuel_tracker=fuel_tracker,
         )
 
     app.state.connection_service = resolved_connection_service
