@@ -33,9 +33,15 @@ uvicorn race_engineer.api.app:app --reload
 
 - Health check: `GET http://127.0.0.1:8000/health`
 - Live telemetry: `WS ws://127.0.0.1:8000/ws` (JSON messages: `connection`, `telemetry`, `race_state`)
+- Voice STT: `POST http://127.0.0.1:8000/voice/transcribe` (WAV upload; requires `ELEVENLABS_API_KEY`)
+- Engineer TTS: `POST http://127.0.0.1:8000/voice/speak` with JSON `{"text":"..."}` (requires `ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID`)
 - Interactive docs: `http://127.0.0.1:8000/docs`
 
-Optional: set `CORS_ORIGINS` (comma-separated) to override default localhost origins.
+Optional environment:
+
+- `CORS_ORIGINS` (comma-separated) to override default localhost origins
+- `ELEVENLABS_STT_MODEL`, `ELEVENLABS_TTS_MODEL`, `ELEVENLABS_TTS_OUTPUT_FORMAT` (default `pcm_16000`)
+- `VOICE_OUTPUT_VOLUME` (0.0–1.0, default `1.0`)
 
 ## Usage
 
