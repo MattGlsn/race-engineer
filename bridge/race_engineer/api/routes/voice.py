@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from race_engineer.ai.llm.errors import LlmErrorCode
 from race_engineer.ai.llm.models import CompletionResult
 from race_engineer.ai.llm.result import LlmResult
+from race_engineer.ai.models import EngineerAskResult
 from race_engineer.ai.service import EngineerAiService
 from race_engineer.context.aggregator import ContextAggregator
 from race_engineer.voice.engineer import EngineerVoiceService
@@ -126,14 +127,24 @@ async def ask_engineer(
 
 
 def _ask_response_from_result(
-    result: LlmResult[CompletionResult],
+    result: EngineerAskResult | LlmResult[CompletionResult],
 ) -> dict[str, Any]:
+    if isinstance(result, EngineerAskResult):
+        return {
+            "success": True,
+            "text": result.text,
+            "model": result.model,
+            "latency_ms": result.latency_ms,
+            "fallback_used": result.fallback_used,
+        }
+
     if result.success and result.data is not None:
         return {
             "success": True,
             "text": result.data.text,
             "model": result.data.model,
             "latency_ms": result.data.latency_ms,
+            "fallback_used": False,
         }
 
     error_code = result.error_code.value if result.error_code else "unknown"

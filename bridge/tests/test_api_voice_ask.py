@@ -3,8 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 from fastapi.testclient import TestClient
 
-from race_engineer.ai.llm.models import CompletionResult
-from race_engineer.ai.llm.result import LlmResult
+from race_engineer.ai.models import EngineerAskResult
 from race_engineer.ai.service import EngineerAiService
 from race_engineer.api.app import create_app
 from race_engineer.connection import SdkConnectionService
@@ -58,12 +57,10 @@ def test_ask_engineer_returns_success(
     mock_engineer_ai: MagicMock,
     mock_context_aggregator: MagicMock,
 ) -> None:
-    mock_engineer_ai.ask.return_value = LlmResult.ok(
-        CompletionResult(
-            text="P3, 42 liters left.",
-            model="gpt-4o-mini",
-            latency_ms=180,
-        )
+    mock_engineer_ai.ask.return_value = EngineerAskResult(
+        text="P3, 42 liters left.",
+        model="gpt-4o-mini",
+        latency_ms=180,
     )
 
     response = client.post(
