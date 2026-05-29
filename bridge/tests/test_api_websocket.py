@@ -96,3 +96,31 @@ def test_websocket_broadcasts_telemetry(
     assert telemetry["data"]["rpm"] == 6000.0
     assert telemetry["data"]["gear"] == 3
     mock_telemetry_reader.read_snapshot.assert_called()
+
+
+def test_websocket_disconnect_removes_client(
+    client: TestClient,
+    ws_manager: WebSocketConnectionManager,
+) -> None:
+    with client.websocket_connect("/ws") as websocket:
+        assert ws_manager.client_count == 1
+        websocket.receive_json()
+
+    assert ws_manager.client_count == 0
+
+
+def test_multiple_websocket_clients_receive_broadcast(
+    client: TestClient,
+) -> None:
+    with (
+        client.websocket_connect("/ws") as first,
+        client.websocket_connect("/ws") as second,
+    ):
+        first.receive_json()
+        second.receive_json()
+        first_telemetry = first.receive_json()
+        second_telemetry = second.receive_json()
+
+    assert first_telemetry["type"] == "telemetry"
+    assert second_telemetry["type"] == "telemetry"
+    assert first_telemetry["data"]["speed"] == second_telemetry["data"]["speed"]
