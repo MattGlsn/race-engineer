@@ -32,6 +32,7 @@ uvicorn race_engineer.api.app:app --reload
 ```
 
 - Health check: `GET http://127.0.0.1:8000/health`
+- Live telemetry: `WS ws://127.0.0.1:8000/ws` (JSON messages: `connection`, `telemetry`, `race_state`)
 - Interactive docs: `http://127.0.0.1:8000/docs`
 
 Optional: set `CORS_ORIGINS` (comma-separated) to override default localhost origins.

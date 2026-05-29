@@ -7,27 +7,56 @@ from fastapi.middleware.cors import CORSMiddleware
 from race_engineer.api.config import get_cors_origins
 from race_engineer.api.routes.health import router as health_router
 from race_engineer.api.routes.ws import router as ws_router
-from race_engineer.api.ws import WebSocketConnectionManager
+from race_engineer.api.ws import TelemetryBroadcaster, WebSocketConnectionManager
 from race_engineer.connection import SdkConnectionService
+from race_engineer.session import SessionInfoReader
+from race_engineer.standings import StandingsReader
+from race_engineer.telemetry import TelemetryVariableReader
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     connection_service = app.state.connection_service
-    yield
-    connection_service.disconnect()
+    broadcaster = app.state.broadcaster
+    await broadcaster.start()
+    try:
+        yield
+    finally:
+        await broadcaster.stop()
+        connection_service.disconnect()
 
 
-def create_app(connection_service: SdkConnectionService | None = None) -> FastAPI:
+def create_app(
+    connection_service: SdkConnectionService | None = None,
+    ws_manager: WebSocketConnectionManager | None = None,
+    broadcaster: TelemetryBroadcaster | None = None,
+) -> FastAPI:
     app = FastAPI(
         title="Race Engineer Bridge API",
         description="Telemetry bridge API for iRacing",
         version="0.1.0",
         lifespan=lifespan,
     )
-    app.state.connection_service = (
+    resolved_connection_service = (
         connection_service if connection_service is not None else SdkConnectionService()
     )
+    resolved_ws_manager = (
+        ws_manager if ws_manager is not None else WebSocketConnectionManager()
+    )
+    sdk = resolved_connection_service.sdk
+    resolved_broadcaster = broadcaster
+    if resolved_broadcaster is None:
+        resolved_broadcaster = TelemetryBroadcaster(
+            resolved_ws_manager,
+            resolved_connection_service,
+            TelemetryVariableReader(sdk=sdk),
+            SessionInfoReader(sdk=sdk),
+            StandingsReader(sdk=sdk),
+        )
+
+    app.state.connection_service = resolved_connection_service
+    app.state.ws_manager = resolved_ws_manager
+    app.state.broadcaster = resolved_broadcaster
     app.add_middleware(
         CORSMiddleware,
         allow_origins=get_cors_origins(),
@@ -35,7 +64,6 @@ def create_app(connection_service: SdkConnectionService | None = None) -> FastAP
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    app.state.ws_manager = WebSocketConnectionManager()
     app.include_router(health_router)
     app.include_router(ws_router)
     return app

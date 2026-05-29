@@ -22,6 +22,7 @@ def mock_connection_service() -> MagicMock:
 
 @pytest.fixture
 def client(mock_connection_service: MagicMock) -> TestClient:
+    mock_connection_service.sdk = MagicMock()
     app = create_app(connection_service=mock_connection_service)
     with TestClient(app) as test_client:
         yield test_client
