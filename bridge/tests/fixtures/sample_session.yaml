@@ -1,0 +1,23 @@
+WeekendInfo:
+  TrackName: lucas
+  TrackDisplayName: Lucas Oil Raceway
+SessionInfo:
+  Sessions:
+    - SessionNum: 0
+      SessionType: Practice
+      SessionName: PRACTICE
+    - SessionNum: 1
+      SessionType: Race
+      SessionName: RACE
+DriverInfo:
+  Drivers:
+    - CarIdx: 0
+      UserName: Driver One
+      CarNumber: "42"
+      CarClassID: 0
+      CarClassShortName: MX-5
+    - CarIdx: 1
+      UserName: Driver Two
+      CarNumber: "7"
+      CarClassID: 1
+      CarClassShortName: GT3
