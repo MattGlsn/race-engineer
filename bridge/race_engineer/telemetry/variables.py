@@ -1,0 +1,10 @@
+"""iRacing SDK variable names for telemetry fields."""
+
+SPEED = "Speed"
+FUEL_LEVEL = "FuelLevel"
+LAP_DIST_PCT = "LapDistPct"
+GEAR = "Gear"
+THROTTLE = "Throttle"
+BRAKE = "Brake"
+STEERING_WHEEL_ANGLE = "SteeringWheelAngle"
+RPM = "RPM"

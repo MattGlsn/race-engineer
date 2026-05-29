@@ -1,4 +1,4 @@
-from typing import Protocol
+from typing import Any, Protocol
 
 import irsdk
 
@@ -13,6 +13,12 @@ class IrSdkClient(Protocol):
     def startup(self) -> bool: ...
 
     def shutdown(self) -> None: ...
+
+    def freeze_var_buffer_latest(self) -> None: ...
+
+    def unfreeze_var_buffer_latest(self) -> None: ...
+
+    def __getitem__(self, key: str) -> Any: ...
 
 
 class IrSdkWrapper:
@@ -34,3 +40,15 @@ class IrSdkWrapper:
 
     def shutdown(self) -> None:
         self._sdk.shutdown()
+
+    def freeze_var_buffer_latest(self) -> None:
+        self._sdk.freeze_var_buffer_latest()
+
+    def unfreeze_var_buffer_latest(self) -> None:
+        self._sdk.unfreeze_var_buffer_latest()
+
+    def get_var(self, name: str) -> Any | None:
+        try:
+            return self._sdk[name]
+        except (KeyError, TypeError):
+            return None
