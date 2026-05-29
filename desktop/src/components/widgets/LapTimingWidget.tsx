@@ -1,28 +1,21 @@
 import type { RaceStateData } from "../../types/bridge";
 import { formatLapTime } from "../../utils/format";
 import { findPlayerStanding } from "../../utils/raceState";
+import { MetricRow } from "./MetricRow";
 import { WidgetCard } from "./WidgetCard";
 
 type LapTimingWidgetProps = {
   raceState: RaceStateData | null;
+  dataLive: boolean;
 };
 
-function MetricRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="metric-row">
-      <span className="metric-row__label">{label}</span>
-      <span className="metric-row__value">{value}</span>
-    </div>
-  );
-}
-
-export function LapTimingWidget({ raceState }: LapTimingWidgetProps) {
+export function LapTimingWidget({ raceState, dataLive }: LapTimingWidgetProps) {
   const standing = findPlayerStanding(raceState);
   const track = raceState?.session.track_name;
   const sessionType = raceState?.session.session_type;
 
   return (
-    <WidgetCard title="Lap timing">
+    <WidgetCard title="Lap timing" dataLive={dataLive}>
       <MetricRow
         label="Best lap"
         value={formatLapTime(standing?.best_lap_time)}

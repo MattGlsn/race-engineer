@@ -39,12 +39,15 @@ function applyConnection(
   prev: BridgeSocketState,
   data: ConnectionState,
 ): BridgeSocketState {
+  const sdkConnected = Boolean(data.sdk_connected);
   return {
     ...prev,
     bridgeConnected: true,
-    sdkConnected: Boolean(data.sdk_connected),
+    sdkConnected,
     connectionState: data.state,
     lastError: null,
+    raceState: sdkConnected ? prev.raceState : null,
+    lastRaceStateAt: sdkConnected ? prev.lastRaceStateAt : null,
   };
 }
 
@@ -131,6 +134,8 @@ export function useBridgeWebSocket(url = DEFAULT_WS_URL): BridgeSocketState {
           bridgeConnected: false,
           sdkConnected: false,
           connectionState: null,
+          raceState: null,
+          lastRaceStateAt: null,
         }));
         scheduleReconnect();
       };
