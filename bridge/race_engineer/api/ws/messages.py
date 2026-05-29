@@ -2,6 +2,7 @@ import time
 from typing import Any
 
 from race_engineer.fuel.models import FuelConsumptionSnapshot
+from race_engineer.fuel.projection.models import FuelProjectionSnapshot
 from race_engineer.gap.models import GapAheadSnapshot, GapBehindSnapshot
 from race_engineer.position.models import PlayerPositionSnapshot
 from race_engineer.session.models import Driver, Session
@@ -28,6 +29,7 @@ def build_race_state_message(
     gap_ahead: GapAheadSnapshot | None = None,
     gap_behind: GapBehindSnapshot | None = None,
     fuel_consumption: FuelConsumptionSnapshot | None = None,
+    fuel_projection: FuelProjectionSnapshot | None = None,
 ) -> dict[str, Any]:
     return {
         "type": "race_state",
@@ -39,6 +41,7 @@ def build_race_state_message(
             "gap_ahead": _gap_ahead_payload(gap_ahead),
             "gap_behind": _gap_behind_payload(gap_behind),
             "fuel_consumption": _fuel_consumption_payload(fuel_consumption),
+            "fuel_projection": _fuel_projection_payload(fuel_projection),
         },
     }
 
@@ -159,4 +162,24 @@ def _fuel_consumption_fields(
         "rolling_avg_usage": fuel_consumption.rolling_avg_usage,
         "valid_lap_count": fuel_consumption.valid_lap_count,
         "fuel_at_lap_start": fuel_consumption.fuel_at_lap_start,
+    }
+
+
+def _fuel_projection_payload(
+    fuel_projection: FuelProjectionSnapshot | None,
+) -> dict[str, Any]:
+    if fuel_projection is None:
+        return _fuel_projection_fields(FuelProjectionSnapshot())
+
+    return _fuel_projection_fields(fuel_projection)
+
+
+def _fuel_projection_fields(
+    fuel_projection: FuelProjectionSnapshot,
+) -> dict[str, Any]:
+    return {
+        "laps_remaining": fuel_projection.laps_remaining,
+        "projected_finish_fuel": fuel_projection.projected_finish_fuel,
+        "risk_level": fuel_projection.risk_level.value,
+        "warning": fuel_projection.warning,
     }

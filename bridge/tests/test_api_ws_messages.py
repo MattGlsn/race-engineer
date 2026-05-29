@@ -2,7 +2,7 @@ from race_engineer.api.ws.messages import (
     build_race_state_message,
     build_telemetry_message,
 )
-from race_engineer.fuel import FuelConsumptionSnapshot
+from race_engineer.fuel import FuelConsumptionSnapshot, FuelProjectionSnapshot, FuelRiskLevel
 from race_engineer.gap import GapAheadSnapshot, GapBehindSnapshot
 from race_engineer.position import PlayerPositionSnapshot
 from race_engineer.session import Driver, Session
@@ -63,6 +63,12 @@ def test_build_race_state_message() -> None:
         "valid_lap_count": 0,
         "fuel_at_lap_start": None,
     }
+    assert message["data"]["fuel_projection"] == {
+        "laps_remaining": None,
+        "projected_finish_fuel": None,
+        "risk_level": "unknown",
+        "warning": False,
+    }
 
 
 def test_build_race_state_message_with_gap_ahead() -> None:
@@ -102,6 +108,26 @@ def test_build_race_state_message_with_fuel_consumption() -> None:
         "rolling_avg_usage": 1.45,
         "valid_lap_count": 3,
         "fuel_at_lap_start": 27.0,
+    }
+
+
+def test_build_race_state_message_with_fuel_projection() -> None:
+    message = build_race_state_message(
+        Session(track_name="Daytona"),
+        StandingsSnapshot(),
+        fuel_projection=FuelProjectionSnapshot(
+            laps_remaining=10,
+            projected_finish_fuel=15.0,
+            risk_level=FuelRiskLevel.SAFE,
+            warning=False,
+        ),
+    )
+
+    assert message["data"]["fuel_projection"] == {
+        "laps_remaining": 10,
+        "projected_finish_fuel": 15.0,
+        "risk_level": "safe",
+        "warning": False,
     }
 
 
