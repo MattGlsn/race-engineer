@@ -4,7 +4,7 @@ from typing import AsyncIterator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from race_engineer.api.config import get_cors_origins
+from race_engineer.api.config import get_cors_origins, load_env
 from race_engineer.api.routes.health import router as health_router
 from race_engineer.api.routes.voice import router as voice_router
 from race_engineer.api.routes.ws import router as ws_router
@@ -92,4 +92,5 @@ def _build_voice_pipeline() -> VoicePipeline | None:
     return VoicePipeline(ElevenLabsSttClient(config))
 
 
+load_env()
 app = create_app()
