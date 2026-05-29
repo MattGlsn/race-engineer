@@ -34,6 +34,7 @@ from race_engineer.voice.audio.volume import load_voice_volume_config
 from race_engineer.voice.conversation.orchestrator import VoiceConversationOrchestrator
 from race_engineer.voice.hotkey.errors import HotkeyRegistrationError
 from race_engineer.voice.hotkey.service import VoiceHotkeyService
+from race_engineer.settings.hotkey import VoiceHotkeySettings
 from race_engineer.settings.personality import PersonalitySettings
 from race_engineer.settings.volume import VoiceVolumeSettings
 
@@ -71,6 +72,7 @@ def create_app(
     hotkey_service: VoiceHotkeyService | None = None,
     personality_settings: PersonalitySettings | None = None,
     voice_volume_settings: VoiceVolumeSettings | None = None,
+    hotkey_settings: VoiceHotkeySettings | None = None,
 ) -> FastAPI:
     app = FastAPI(
         title="Race Engineer Bridge API",
@@ -114,6 +116,7 @@ def create_app(
     )
     resolved_engineer_ai = engineer_ai or _build_engineer_ai()
     resolved_personality_settings = personality_settings or PersonalitySettings()
+    resolved_hotkey_settings = hotkey_settings or VoiceHotkeySettings.from_env()
 
     app.state.connection_service = resolved_connection_service
     app.state.ws_manager = resolved_ws_manager
@@ -124,6 +127,7 @@ def create_app(
     app.state.context_aggregator = resolved_context_aggregator
     app.state.personality_settings = resolved_personality_settings
     app.state.voice_volume_settings = resolved_voice_volume_settings
+    app.state.hotkey_settings = resolved_hotkey_settings
     app.state.hotkey_service = hotkey_service or _build_hotkey_service(
         resolved_voice_pipeline,
         resolved_ws_manager,
@@ -131,6 +135,7 @@ def create_app(
         resolved_engineer_ai,
         resolved_engineer_voice,
         resolved_personality_settings,
+        resolved_hotkey_settings,
     )
     app.add_middleware(
         CORSMiddleware,
@@ -160,6 +165,7 @@ def _build_hotkey_service(
     engineer_ai: EngineerAiService | None,
     engineer_voice: EngineerVoiceService | None,
     personality_settings: PersonalitySettings,
+    hotkey_settings: VoiceHotkeySettings,
 ) -> VoiceHotkeyService | None:
     if voice_pipeline is None:
         return None
@@ -170,7 +176,11 @@ def _build_hotkey_service(
         engineer_voice,
         personality_settings=personality_settings,
     )
-    return VoiceHotkeyService(voice_pipeline, orchestrator=orchestrator)
+    return VoiceHotkeyService(
+        voice_pipeline,
+        hotkey_settings=hotkey_settings,
+        orchestrator=orchestrator,
+    )
 
 
 def _build_engineer_voice(

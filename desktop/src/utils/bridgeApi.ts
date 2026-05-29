@@ -80,3 +80,37 @@ export async function setVoiceVolume(
     return false;
   }
 }
+
+type VoiceHotkeyResponse = {
+  hotkey: string;
+};
+
+export async function getVoiceHotkey(
+  baseUrl = bridgeHttpBase(),
+): Promise<VoiceHotkeyResponse | null> {
+  try {
+    const response = await fetch(`${baseUrl}/settings/hotkey`);
+    if (!response.ok) {
+      return null;
+    }
+    return (await response.json()) as VoiceHotkeyResponse;
+  } catch {
+    return null;
+  }
+}
+
+export async function setVoiceHotkey(
+  hotkey: string,
+  baseUrl = bridgeHttpBase(),
+): Promise<boolean> {
+  try {
+    const response = await fetch(`${baseUrl}/settings/hotkey`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ hotkey }),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}

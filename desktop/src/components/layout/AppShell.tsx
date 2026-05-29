@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { PersonalityMode } from "../../types/personalityMode";
 import type { BridgeSocketState } from "../../hooks/useBridgeWebSocket";
 import { EngineerToneControl } from "../settings/EngineerToneControl";
+import { VoiceHotkeyControl } from "../settings/VoiceHotkeyControl";
 import type { AppView } from "./SidebarNav";
 import { SidebarNav } from "./SidebarNav";
 import { StatusCards } from "./StatusCards";
@@ -14,6 +15,9 @@ type AppShellProps = {
   personalityMode: PersonalityMode;
   onSelectPersonalityMode: (mode: PersonalityMode) => void;
   personalitySyncError: string | null;
+  voiceHotkey: string;
+  onSelectVoiceHotkey: (hotkey: string) => void;
+  voiceHotkeySyncError: string | null;
   children: ReactNode;
 };
 
@@ -24,6 +28,9 @@ export function AppShell({
   personalityMode,
   onSelectPersonalityMode,
   personalitySyncError,
+  voiceHotkey,
+  onSelectVoiceHotkey,
+  voiceHotkeySyncError,
   children,
 }: AppShellProps) {
   return (
@@ -33,12 +40,20 @@ export function AppShell({
           activeId={activeView}
           onNavigate={onNavigate}
           footer={
-            <EngineerToneControl
-              mode={personalityMode}
-              onSelectMode={onSelectPersonalityMode}
-              syncError={personalitySyncError}
-              bridgeConnected={bridge.bridgeConnected}
-            />
+            <div className="sidebar-settings">
+              <VoiceHotkeyControl
+                hotkey={voiceHotkey}
+                onSelectHotkey={onSelectVoiceHotkey}
+                syncError={voiceHotkeySyncError}
+                bridgeConnected={bridge.bridgeConnected}
+              />
+              <EngineerToneControl
+                mode={personalityMode}
+                onSelectMode={onSelectPersonalityMode}
+                syncError={personalitySyncError}
+                bridgeConnected={bridge.bridgeConnected}
+              />
+            </div>
           }
         />
       </aside>

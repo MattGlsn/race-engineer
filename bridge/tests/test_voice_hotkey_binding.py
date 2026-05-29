@@ -21,3 +21,10 @@ def test_matches_requires_modifiers_and_key() -> None:
 def test_parse_rejects_multiple_trigger_keys() -> None:
     with pytest.raises(ValueError, match="exactly one non-modifier"):
         HotkeyBinding.parse("ctrl+a+b")
+
+
+def test_format_round_trip() -> None:
+    binding = HotkeyBinding.parse("shift+ctrl+space")
+
+    assert binding.format() == "ctrl+shift+space"
+    assert HotkeyBinding.parse(binding.format()) == binding

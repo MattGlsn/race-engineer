@@ -39,6 +39,7 @@ uvicorn race_engineer.api.app:app --reload
 - Engineer AI: `POST http://127.0.0.1:8000/voice/ask` with JSON `{"text":"...", "intent":"fuel"}` (optional intent; requires `OPENAI_API_KEY`)
 - Engineer tone: `GET` / `PUT http://127.0.0.1:8000/settings/personality` with JSON `{"mode":"calm"|"direct"|"intense"}` (used by push-to-talk and `/voice/ask`)
 - Engineer volume: `GET` / `PUT http://127.0.0.1:8000/settings/volume` with JSON `{"volume":0.0-2.0}` (TTS playback gain on the bridge machine)
+- Push-to-talk hotkey: `GET` / `PUT http://127.0.0.1:8000/settings/hotkey` with JSON `{"hotkey":"ctrl+shift+space"}` (global PTT binding on the bridge machine; also adjustable via desktop)
 - Interactive docs: `http://127.0.0.1:8000/docs`
 
 Optional environment:
@@ -46,13 +47,13 @@ Optional environment:
 - `CORS_ORIGINS` (comma-separated) to override default localhost origins
 - `ELEVENLABS_STT_MODEL`, `ELEVENLABS_TTS_MODEL`, `ELEVENLABS_TTS_OUTPUT_FORMAT` (default `pcm_16000`)
 - `VOICE_OUTPUT_VOLUME` (0.0–2.0, default `1.0`; values above `1.0` boost TTS over engine noise; also adjustable via desktop or `GET`/`PUT /settings/volume`)
-- `VOICE_HOTKEY` (default `ctrl+shift+space`) — global push-to-talk while the bridge is running (see **Push-to-talk conversation** below)
+- `VOICE_HOTKEY` (default `ctrl+shift+space`) — initial push-to-talk binding at bridge startup; also adjustable at runtime via desktop or `GET`/`PUT /settings/hotkey` (see **Push-to-talk conversation** below)
 - `OPENAI_API_KEY` — enables engineer AI replies via `/voice/ask` and the PTT conversation loop
 - `OPENAI_MODEL` (default `gpt-4o-mini`), `OPENAI_BASE_URL`, `LLM_TIMEOUT_SECONDS` (default `8.0`), `LLM_MAX_COMPLETION_TOKENS` (default `150`)
 
 ## Push-to-talk conversation
 
-When the bridge is running with `ELEVENLABS_API_KEY` configured, hold `VOICE_HOTKEY` to record from the bridge machine's microphone. On release, the bridge runs the full conversation loop:
+When the bridge is running with `ELEVENLABS_API_KEY` configured, hold the configured push-to-talk hotkey (default `ctrl+shift+space`) to record from the bridge machine's microphone. On release, the bridge runs the full conversation loop:
 
 1. ElevenLabs STT transcribes the recording
 2. Driver transcript is broadcast to WebSocket clients (`role: "driver"`)

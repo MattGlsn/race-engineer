@@ -189,6 +189,75 @@ button {
   border-top: 1px solid var(--border);
 }
 
+.sidebar-settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.voice-hotkey {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.voice-hotkey__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.voice-hotkey__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.voice-hotkey__binding {
+  display: inline-block;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  color: var(--text);
+  background: var(--bg-elevated);
+}
+
+.voice-hotkey__change {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  cursor: pointer;
+}
+
+.voice-hotkey__change:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.voice-hotkey__change:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.voice-hotkey__hint,
+.voice-hotkey__error {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.voice-hotkey__error {
+  color: var(--warning);
+}
+
 .status-cards {
   display: flex;
   flex-wrap: wrap;

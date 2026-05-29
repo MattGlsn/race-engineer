@@ -33,3 +33,7 @@ class HotkeyBinding:
             return False
         remaining = still_pressed - {released}
         return self.modifiers <= remaining
+
+    def format(self) -> str:
+        parts = sorted(self.modifiers) + [self.key]
+        return "+".join(parts)

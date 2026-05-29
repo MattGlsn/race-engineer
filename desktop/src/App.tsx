@@ -9,6 +9,7 @@ import { LapTimingWidget } from "./components/widgets/LapTimingWidget";
 import { PositionWidget } from "./components/widgets/PositionWidget";
 import { useBridgeWebSocket } from "./hooks/useBridgeWebSocket";
 import { usePersonalitySettings } from "./hooks/usePersonalitySettings";
+import { useVoiceHotkey } from "./hooks/useVoiceHotkey";
 import { useVoiceVolume } from "./hooks/useVoiceVolume";
 import { useTranscriptStore } from "./hooks/useTranscriptStore";
 import { isRaceDataLive } from "./utils/bridge";
@@ -20,6 +21,7 @@ export default function App() {
   const personality = usePersonalitySettings({
     bridgeConnected: bridge.bridgeConnected,
   });
+  const voiceHotkey = useVoiceHotkey({ bridgeConnected: bridge.bridgeConnected });
   const voiceVolume = useVoiceVolume({ bridgeConnected: bridge.bridgeConnected });
   const dataLive = isRaceDataLive(bridge);
   const raceState = dataLive ? bridge.raceState : null;
@@ -32,6 +34,9 @@ export default function App() {
       personalityMode={personality.mode}
       onSelectPersonalityMode={personality.selectMode}
       personalitySyncError={personality.syncError}
+      voiceHotkey={voiceHotkey.hotkey}
+      onSelectVoiceHotkey={voiceHotkey.selectHotkey}
+      voiceHotkeySyncError={voiceHotkey.syncError}
     >
       {activeView === "dashboard" ? (
         <div className="dashboard-grid">
