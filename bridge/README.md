@@ -26,9 +26,21 @@ python -m pytest tests/ -v
 
 ```python
 from race_engineer.connection import SdkConnectionService
+from race_engineer.sdk import IrSdkWrapper
+from race_engineer.telemetry import TelemetryVariableReader, is_valid_snapshot
 
-service = SdkConnectionService()
+sdk = IrSdkWrapper()
+service = SdkConnectionService(sdk=sdk)
+reader = TelemetryVariableReader(sdk=sdk)
+
 if service.connect():
-    print(service.as_dict())
+    while service.check_health():
+        snapshot = reader.read_snapshot()
+        if is_valid_snapshot(snapshot):
+            print(snapshot.speed, snapshot.rpm, snapshot.gear)
     service.disconnect()
 ```
+
+Poll `read_snapshot()` at 20Hz or faster while connected. Each call freezes the SDK
+variable buffer, reads Speed, FuelLevel, LapDistPct, Gear, Throttle, Brake,
+SteeringWheelAngle, and RPM, then unfreezes. When disconnected, all fields are `None`.
