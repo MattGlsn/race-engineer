@@ -3,6 +3,9 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from pydantic import BaseModel, Field
 
+from race_engineer.ai.models import EngineerAskResult
+from race_engineer.ai.service import EngineerAiService
+from race_engineer.context.aggregator import ContextAggregator
 from race_engineer.voice.engineer import EngineerVoiceService
 from race_engineer.voice.intent.router import route_intent
 from race_engineer.voice.pipeline import VoicePipeline
@@ -20,6 +23,11 @@ class SpeakRequest(BaseModel):
 
 class RouteRequest(BaseModel):
     text: str = Field(..., min_length=1)
+
+
+class AskRequest(BaseModel):
+    text: str = Field(..., min_length=1)
+    intent: str | None = None
 
 
 def get_voice_pipeline(request: Request) -> VoicePipeline:
@@ -51,6 +59,30 @@ def get_engineer_voice(request: Request) -> EngineerVoiceService:
 EngineerVoiceDep = Annotated[EngineerVoiceService, Depends(get_engineer_voice)]
 
 
+def get_engineer_ai(request: Request) -> EngineerAiService:
+    service = getattr(request.app.state, "engineer_ai", None)
+    if service is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="engineer AI is not configured (set OPENAI_API_KEY)",
+        )
+    return service
+
+
+def get_context_aggregator(request: Request) -> ContextAggregator:
+    aggregator = getattr(request.app.state, "context_aggregator", None)
+    if aggregator is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="context aggregation is not available",
+        )
+    return aggregator
+
+
+EngineerAiDep = Annotated[EngineerAiService, Depends(get_engineer_ai)]
+ContextAggregatorDep = Annotated[ContextAggregator, Depends(get_context_aggregator)]
+
+
 @router.post("/voice/transcribe")
 async def transcribe_voice(
     pipeline: VoicePipelineDep,
@@ -78,6 +110,28 @@ async def route_voice(body: RouteRequest) -> dict[str, Any]:
         "text": routed.text,
         "intent": routed.intent.value,
     }
+
+
+@router.post("/voice/ask")
+async def ask_engineer(
+    body: AskRequest,
+    service: EngineerAiDep,
+    context_aggregator: ContextAggregatorDep,
+) -> dict[str, Any]:
+    context = context_aggregator.build()
+    result = service.ask(body.text, context, intent=body.intent)
+    return _ask_response_from_result(result)
+
+
+def _ask_response_from_result(result: EngineerAskResult) -> dict[str, Any]:
+    return {
+        "success": True,
+        "text": result.text,
+        "model": result.model,
+        "latency_ms": result.latency_ms,
+        "fallback_used": result.fallback_used,
+    }
+
 
 
 def _response_from_result(
