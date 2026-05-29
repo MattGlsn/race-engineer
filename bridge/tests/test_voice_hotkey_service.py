@@ -35,3 +35,4 @@ def test_service_broadcasts_successful_transcript() -> None:
     assert message["type"] == "transcript"
     assert message["data"]["role"] == "driver"
     assert message["data"]["text"] == "box now"
+    assert message["data"]["intent"] == "unknown"

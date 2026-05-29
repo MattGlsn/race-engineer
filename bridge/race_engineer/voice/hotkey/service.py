@@ -10,6 +10,7 @@ from race_engineer.voice.hotkey.config import VoiceHotkeyConfig, load_voice_hotk
 from race_engineer.voice.hotkey.controller import VoiceHotkeyController
 from race_engineer.voice.hotkey.errors import HotkeyRegistrationError
 from race_engineer.voice.hotkey.listener import GlobalHotkeyListener
+from race_engineer.voice.intent.router import IntentRouter
 from race_engineer.voice.pipeline import VoicePipeline
 from race_engineer.voice.stt.models import TranscriptResult
 from race_engineer.voice.stt.result import VoicePipelineResult
@@ -27,11 +28,13 @@ class VoiceHotkeyService:
         *,
         config: VoiceHotkeyConfig | None = None,
         listener: GlobalHotkeyListener | None = None,
+        intent_router: IntentRouter | None = None,
     ) -> None:
         self._pipeline = pipeline
         self._ws_manager = ws_manager
         self._config = config or load_voice_hotkey_config()
         self._listener = listener
+        self._intent_router = intent_router or IntentRouter()
         self._loop: asyncio.AbstractEventLoop | None = None
 
     def start(self, loop: asyncio.AbstractEventLoop) -> None:
@@ -69,9 +72,11 @@ class VoiceHotkeyService:
             logger.warning("voice hotkey transcript dropped: event loop not bound")
             return
 
+        routed = self._intent_router.route(result.data.text)
         message = build_transcript_message(
             role="driver",
             text=result.data.text,
+            intent=routed.intent.value,
         )
         asyncio.run_coroutine_threadsafe(
             self._ws_manager.broadcast(message),

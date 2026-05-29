@@ -34,6 +34,7 @@ uvicorn race_engineer.api.app:app --reload
 - Health check: `GET http://127.0.0.1:8000/health`
 - Live telemetry: `WS ws://127.0.0.1:8000/ws` (JSON messages: `connection`, `telemetry`, `race_state`)
 - Voice STT: `POST http://127.0.0.1:8000/voice/transcribe` (WAV upload; requires `ELEVENLABS_API_KEY`)
+- Intent router: `POST http://127.0.0.1:8000/voice/route` with JSON `{"text":"..."}` → `intent` (`coaching`, `fuel`, `position`, `gap`, `lap`, or `unknown`)
 - Engineer TTS: `POST http://127.0.0.1:8000/voice/speak` with JSON `{"text":"..."}` (requires `ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID`)
 - Interactive docs: `http://127.0.0.1:8000/docs`
 
