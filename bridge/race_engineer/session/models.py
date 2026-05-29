@@ -10,3 +10,12 @@ class Driver:
     car_number: str
     car_class_id: int | None = None
     car_class_short_name: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class Session:
+    """Parsed iRacing session metadata."""
+
+    track_name: str | None = None
+    session_type: str | None = None
+    drivers: tuple[Driver, ...] = ()
