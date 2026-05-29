@@ -1,4 +1,5 @@
 from race_engineer.ai.fallback import LLM_FALLBACK_MESSAGE
+from race_engineer.ai.prompt.models import PersonalityMode
 from race_engineer.ai.llm.client import OpenAiChatClient
 from race_engineer.ai.llm.errors import LlmErrorCode
 from race_engineer.ai.llm.metadata import CompletionMetadata, log_completion_metadata
@@ -24,6 +25,7 @@ class EngineerAiService:
         context: EngineerContext,
         *,
         intent: str | None = None,
+        personality: PersonalityMode | None = None,
         max_response_words: int = DEFAULT_MAX_RESPONSE_WORDS,
     ) -> EngineerAskResult:
         validate_engineer_context(context)
@@ -32,6 +34,7 @@ class EngineerAiService:
             user_text=user_text,
             context=context,
             intent=intent,
+            personality=personality,
             max_response_words=max_response_words,
         )
         result = self._llm_client.complete(messages)

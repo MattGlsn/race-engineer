@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from race_engineer.ai.fallback import LLM_FALLBACK_MESSAGE
+from race_engineer.ai.prompt.models import PersonalityMode
 from race_engineer.ai.llm.errors import LlmErrorCode
 from race_engineer.ai.models import EngineerAskResult
 from race_engineer.ai.service import EngineerAiService
@@ -100,6 +101,21 @@ def test_ask_engineer_unconfigured_returns_503(
         response = client.post("/voice/ask", json={"text": "What's my fuel?"})
 
     assert response.status_code == 503
+
+
+def test_ask_engineer_request_personality_overrides_settings(
+    client: TestClient,
+    mock_engineer_ai: MagicMock,
+) -> None:
+    mock_engineer_ai.ask.return_value = EngineerAskResult(text="Stay out.")
+
+    response = client.post(
+        "/voice/ask",
+        json={"text": "Fuel?", "personality": "calm"},
+    )
+
+    assert response.status_code == 200
+    assert mock_engineer_ai.ask.call_args.kwargs["personality"] == PersonalityMode.CALM
 
 
 def test_ask_engineer_returns_fallback_on_llm_error(

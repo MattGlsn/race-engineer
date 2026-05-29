@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 export type AppView = "dashboard" | "transcript";
 
 const NAV_ITEMS: ReadonlyArray<{
@@ -11,9 +13,14 @@ const NAV_ITEMS: ReadonlyArray<{
 type SidebarNavProps = {
   activeId?: AppView;
   onNavigate?: (view: AppView) => void;
+  footer?: ReactNode;
 };
 
-export function SidebarNav({ activeId = "dashboard", onNavigate }: SidebarNavProps) {
+export function SidebarNav({
+  activeId = "dashboard",
+  onNavigate,
+  footer,
+}: SidebarNavProps) {
   return (
     <nav className="sidebar-nav" aria-label="Main navigation">
       <div className="sidebar-nav__brand">Race Engineer</div>
@@ -35,6 +42,7 @@ export function SidebarNav({ activeId = "dashboard", onNavigate }: SidebarNavPro
           </li>
         ))}
       </ul>
+      {footer ? <div className="sidebar-nav__footer">{footer}</div> : null}
     </nav>
   );
 }

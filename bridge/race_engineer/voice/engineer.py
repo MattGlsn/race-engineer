@@ -1,5 +1,6 @@
 from race_engineer.voice.audio.player import AudioPlayer, PlaybackError
-from race_engineer.voice.audio.volume import VoiceVolumeConfig, load_voice_volume_config
+from race_engineer.settings.volume import VoiceVolumeSettings
+from race_engineer.voice.audio.volume import load_voice_volume_config
 from race_engineer.voice.stt.errors import VoiceErrorCode
 from race_engineer.voice.stt.result import VoicePipelineResult
 from race_engineer.voice.tts.client import ElevenLabsTtsClient
@@ -14,11 +15,13 @@ class EngineerVoiceService:
         tts_client: ElevenLabsTtsClient,
         *,
         player: AudioPlayer | None = None,
-        volume_config: VoiceVolumeConfig | None = None,
+        volume_settings: VoiceVolumeSettings | None = None,
     ) -> None:
         self._tts_client = tts_client
         self._player = player or AudioPlayer()
-        self._volume_config = volume_config or load_voice_volume_config()
+        self._volume_settings = volume_settings or VoiceVolumeSettings(
+            load_voice_volume_config().volume
+        )
 
     def speak(self, text: str) -> VoicePipelineResult[SynthesisResult]:
         stream_result = self._tts_client.synthesize_stream(text)
@@ -32,7 +35,7 @@ class EngineerVoiceService:
         try:
             self._player.play_stream(
                 stream_result.data,
-                volume=self._volume_config.volume,
+                volume=self._volume_settings.volume,
             )
         except PlaybackError as exc:
             return VoicePipelineResult.fail(

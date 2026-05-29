@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock
 
 from race_engineer.voice.audio.player import AudioPlayer
-from race_engineer.voice.audio.volume import VoiceVolumeConfig
+from race_engineer.settings.volume import VoiceVolumeSettings
 from race_engineer.voice.engineer import EngineerVoiceService
 from race_engineer.voice.stt.errors import VoiceErrorCode
 from race_engineer.voice.stt.result import VoicePipelineResult
@@ -18,7 +18,7 @@ def test_speak_streams_audio_to_player() -> None:
     service = EngineerVoiceService(
         tts_client,
         player=player,
-        volume_config=VoiceVolumeConfig(volume=0.75),
+        volume_settings=VoiceVolumeSettings(0.75),
     )
 
     result = service.speak("  box box  ")

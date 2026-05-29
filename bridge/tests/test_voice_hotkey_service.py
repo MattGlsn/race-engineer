@@ -1,5 +1,6 @@
 import asyncio
-from unittest.mock import AsyncMock, MagicMock
+from concurrent.futures import ThreadPoolExecutor
+from unittest.mock import MagicMock
 
 from race_engineer.voice.hotkey.binding import HotkeyBinding
 from race_engineer.voice.hotkey.config import VoiceHotkeyConfig
@@ -8,31 +9,30 @@ from race_engineer.voice.stt.models import TranscriptResult
 from race_engineer.voice.stt.result import VoicePipelineResult
 
 
-def test_service_broadcasts_successful_transcript() -> None:
+def test_service_delegates_successful_transcript_to_orchestrator() -> None:
     pipeline = MagicMock()
-    manager = MagicMock()
-    manager.broadcast = AsyncMock()
     listener = MagicMock()
+    orchestrator = MagicMock()
     config = VoiceHotkeyConfig(binding=HotkeyBinding.parse("ctrl+shift+space"))
+    executor = ThreadPoolExecutor(max_workers=1)
     service = VoiceHotkeyService(
         pipeline,
-        manager,
         config=config,
         listener=listener,
+        orchestrator=orchestrator,
+        executor=executor,
     )
     loop = asyncio.new_event_loop()
     service.start(loop)
 
     result = VoicePipelineResult.ok(
-        TranscriptResult(text="box now", language_code="en", duration_ms=50)
+        TranscriptResult(text="how much fuel?", language_code="en", duration_ms=50)
     )
     service._on_transcript(result)
-    loop.run_until_complete(asyncio.sleep(0))
+    executor.shutdown(wait=True)
     loop.close()
 
-    manager.broadcast.assert_called_once()
-    message = manager.broadcast.call_args.args[0]
-    assert message["type"] == "transcript"
-    assert message["data"]["role"] == "driver"
-    assert message["data"]["text"] == "box now"
-    assert message["data"]["intent"] == "unknown"
+    orchestrator.handle_transcript.assert_called_once_with(
+        text="how much fuel?",
+        intent="fuel",
+    )

@@ -6,17 +6,25 @@ from dataclasses import dataclass
 import numpy as np
 
 DEFAULT_VOICE_OUTPUT_VOLUME = 1.0
+MAX_VOICE_OUTPUT_VOLUME = 2.0
+
+
+def validate_voice_output_volume(volume: float) -> float:
+    if not 0.0 <= volume <= MAX_VOICE_OUTPUT_VOLUME:
+        raise ValueError(
+            f"volume must be between 0.0 and {MAX_VOICE_OUTPUT_VOLUME}"
+        )
+    return volume
 
 
 @dataclass(frozen=True, slots=True)
 class VoiceVolumeConfig:
-    """Output gain for engineer TTS playback (0.0 = silent, 1.0 = full scale)."""
+    """Output gain for engineer TTS playback (0.0 = silent, 2.0 = boosted)."""
 
     volume: float = DEFAULT_VOICE_OUTPUT_VOLUME
 
     def __post_init__(self) -> None:
-        if not 0.0 <= self.volume <= 1.0:
-            raise ValueError("volume must be between 0.0 and 1.0")
+        validate_voice_output_volume(self.volume)
 
 
 def load_voice_volume_config() -> VoiceVolumeConfig:
@@ -37,7 +45,7 @@ def apply_volume_to_pcm(pcm_bytes: bytes, volume: float) -> bytes:
     if not pcm_bytes:
         return pcm_bytes
 
-    clamped_volume = max(0.0, min(1.0, volume))
+    clamped_volume = max(0.0, min(MAX_VOICE_OUTPUT_VOLUME, volume))
     if clamped_volume == 1.0:
         return pcm_bytes
 
