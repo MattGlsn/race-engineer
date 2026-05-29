@@ -62,7 +62,10 @@ export type RaceStateData = {
   fuel_projection: FuelProjectionSnapshot;
 };
 
+import type { TranscriptMessageData } from "./transcript";
+
 export type BridgeMessage =
   | { type: "connection"; ts: number; data: ConnectionState }
   | { type: "telemetry"; ts: number; data: Record<string, unknown> }
-  | { type: "race_state"; ts: number; data: RaceStateData };
+  | { type: "race_state"; ts: number; data: RaceStateData }
+  | { type: "transcript"; ts: number; data: TranscriptMessageData };
