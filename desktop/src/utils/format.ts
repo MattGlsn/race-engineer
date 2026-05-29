@@ -38,3 +38,11 @@ export function formatPosition(
   }
   return `P${position}`;
 }
+
+export function formatMessageTime(ts: number): string {
+  return new Date(ts * 1000).toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import type { BridgeMessage, ConnectionState, RaceStateData } from "../types/bridge";
+import type { TranscriptMessageData } from "../types/transcript";
 
 const DEFAULT_WS_URL = "ws://127.0.0.1:8000/ws";
 const RECONNECT_MS = 2000;
@@ -12,6 +13,11 @@ export type BridgeSocketState = {
   raceState: RaceStateData | null;
   lastRaceStateAt: number | null;
   lastError: string | null;
+};
+
+type UseBridgeWebSocketOptions = {
+  url?: string;
+  onTranscript?: (data: TranscriptMessageData, ts: number) => void;
 };
 
 const initialState: BridgeSocketState = {
@@ -51,9 +57,17 @@ function applyConnection(
   };
 }
 
-export function useBridgeWebSocket(url = DEFAULT_WS_URL): BridgeSocketState {
+export function useBridgeWebSocket({
+  url = DEFAULT_WS_URL,
+  onTranscript,
+}: UseBridgeWebSocketOptions = {}): BridgeSocketState {
   const [state, setState] = useState<BridgeSocketState>(initialState);
   const reconnectTimer = useRef<number | null>(null);
+  const onTranscriptRef = useRef(onTranscript);
+
+  useEffect(() => {
+    onTranscriptRef.current = onTranscript;
+  }, [onTranscript]);
 
   useEffect(() => {
     let socket: WebSocket | null = null;
@@ -112,6 +126,11 @@ export function useBridgeWebSocket(url = DEFAULT_WS_URL): BridgeSocketState {
             lastRaceStateAt: message.ts,
             lastError: null,
           }));
+          return;
+        }
+
+        if (message.type === "transcript") {
+          onTranscriptRef.current?.(message.data, message.ts);
         }
       };
 
