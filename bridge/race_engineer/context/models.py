@@ -40,3 +40,16 @@ class RaceContextState(BaseModel):
     fuel_risk_level: str = "unknown"
     fuel_warning: bool = False
     nearby_standings: tuple[NearbyStanding, ...] = ()
+
+
+class DriverContextState(BaseModel):
+    """Player identity and standing stats for AI engineer context."""
+
+    model_config = ConfigDict(frozen=True)
+
+    car_idx: int | None = None
+    user_name: str | None = None
+    car_number: str | None = None
+    car_class: str | None = None
+    laps_completed: int | None = None
+    best_lap_time: float | None = None
