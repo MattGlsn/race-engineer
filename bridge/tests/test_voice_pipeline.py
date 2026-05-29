@@ -73,6 +73,15 @@ def test_transcribe_from_microphone_uses_recorder(
     recorder.stop.assert_called_once()
 
 
+def test_start_recording_delegates_to_recorder(pipeline: VoicePipeline) -> None:
+    recorder = pipeline._recorder
+    recorder.start.return_value = None
+
+    pipeline.start_recording()
+
+    recorder.start.assert_called_once()
+
+
 def test_start_and_stop_and_transcribe(
     pipeline: VoicePipeline,
     stt_client: MagicMock,
