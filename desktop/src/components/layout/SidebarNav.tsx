@@ -1,13 +1,19 @@
-const NAV_ITEMS = [
+export type AppView = "dashboard" | "transcript";
+
+const NAV_ITEMS: ReadonlyArray<{
+  id: AppView;
+  label: string;
+}> = [
   { id: "dashboard", label: "Dashboard" },
-  { id: "transcript", label: "Transcript", disabled: true },
-] as const;
+  { id: "transcript", label: "Transcript" },
+];
 
 type SidebarNavProps = {
-  activeId?: string;
+  activeId?: AppView;
+  onNavigate?: (view: AppView) => void;
 };
 
-export function SidebarNav({ activeId = "dashboard" }: SidebarNavProps) {
+export function SidebarNav({ activeId = "dashboard", onNavigate }: SidebarNavProps) {
   return (
     <nav className="sidebar-nav" aria-label="Main navigation">
       <div className="sidebar-nav__brand">Race Engineer</div>
@@ -21,8 +27,8 @@ export function SidebarNav({ activeId = "dashboard" }: SidebarNavProps) {
                   ? "sidebar-nav__link sidebar-nav__link--active"
                   : "sidebar-nav__link"
               }
-              disabled={"disabled" in item && item.disabled}
               aria-current={item.id === activeId ? "page" : undefined}
+              onClick={() => onNavigate?.(item.id)}
             >
               {item.label}
             </button>
