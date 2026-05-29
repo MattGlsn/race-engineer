@@ -1,0 +1,3 @@
+"""Race Engineer Python telemetry bridge."""
+
+__version__ = "0.1.0"
