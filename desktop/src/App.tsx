@@ -1,0 +1,20 @@
+import { AppShell } from "./components/layout/AppShell";
+import { GapWidget } from "./components/widgets/GapWidget";
+import { useBridgeWebSocket } from "./hooks/useBridgeWebSocket";
+
+export default function App() {
+  const bridge = useBridgeWebSocket();
+
+  return (
+    <AppShell bridge={bridge}>
+      <div className="dashboard-grid">
+        <div className="dashboard-grid__slot">
+          <GapWidget raceState={bridge.raceState} />
+        </div>
+        <div className="dashboard-grid__slot" aria-hidden="true" />
+        <div className="dashboard-grid__slot" aria-hidden="true" />
+        <div className="dashboard-grid__slot" aria-hidden="true" />
+      </div>
+    </AppShell>
+  );
+}
