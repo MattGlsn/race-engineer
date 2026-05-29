@@ -17,9 +17,13 @@ from race_engineer.fuel import FuelConsumptionTracker
 from race_engineer.storage.database import connect
 from race_engineer.storage.fuel_repository import FuelLapRepository
 from race_engineer.telemetry import TelemetryVariableReader
+from race_engineer.voice.engineer import EngineerVoiceService
 from race_engineer.voice.pipeline import VoicePipeline
 from race_engineer.voice.stt.client import ElevenLabsSttClient
 from race_engineer.voice.stt.config import load_elevenlabs_stt_config
+from race_engineer.voice.tts.client import ElevenLabsTtsClient
+from race_engineer.voice.tts.config import load_elevenlabs_tts_config
+from race_engineer.voice.audio.volume import load_voice_volume_config
 
 
 @asynccontextmanager
@@ -39,6 +43,7 @@ def create_app(
     ws_manager: WebSocketConnectionManager | None = None,
     broadcaster: TelemetryBroadcaster | None = None,
     voice_pipeline: VoicePipeline | None = None,
+    engineer_voice: EngineerVoiceService | None = None,
 ) -> FastAPI:
     app = FastAPI(
         title="Race Engineer Bridge API",
@@ -72,6 +77,7 @@ def create_app(
     app.state.ws_manager = resolved_ws_manager
     app.state.broadcaster = resolved_broadcaster
     app.state.voice_pipeline = voice_pipeline or _build_voice_pipeline()
+    app.state.engineer_voice = engineer_voice or _build_engineer_voice()
     app.add_middleware(
         CORSMiddleware,
         allow_origins=get_cors_origins(),
@@ -90,6 +96,16 @@ def _build_voice_pipeline() -> VoicePipeline | None:
     if config is None:
         return None
     return VoicePipeline(ElevenLabsSttClient(config))
+
+
+def _build_engineer_voice() -> EngineerVoiceService | None:
+    config = load_elevenlabs_tts_config()
+    if config is None:
+        return None
+    return EngineerVoiceService(
+        ElevenLabsTtsClient(config),
+        volume_config=load_voice_volume_config(),
+    )
 
 
 load_env()
