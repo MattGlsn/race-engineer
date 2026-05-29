@@ -3,6 +3,8 @@ from unittest.mock import MagicMock
 import pytest
 from fastapi.testclient import TestClient
 
+from race_engineer.ai.fallback import LLM_FALLBACK_MESSAGE
+from race_engineer.ai.llm.errors import LlmErrorCode
 from race_engineer.ai.models import EngineerAskResult
 from race_engineer.ai.service import EngineerAiService
 from race_engineer.api.app import create_app
@@ -98,3 +100,22 @@ def test_ask_engineer_unconfigured_returns_503(
         response = client.post("/voice/ask", json={"text": "What's my fuel?"})
 
     assert response.status_code == 503
+
+
+def test_ask_engineer_returns_fallback_on_llm_error(
+    client: TestClient,
+    mock_engineer_ai: MagicMock,
+) -> None:
+    mock_engineer_ai.ask.return_value = EngineerAskResult(
+        text=LLM_FALLBACK_MESSAGE,
+        fallback_used=True,
+        error_code=LlmErrorCode.TIMEOUT,
+    )
+
+    response = client.post("/voice/ask", json={"text": "What's my fuel?"})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert data["fallback_used"] is True
+    assert data["text"] == LLM_FALLBACK_MESSAGE

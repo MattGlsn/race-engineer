@@ -3,9 +3,6 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from pydantic import BaseModel, Field
 
-from race_engineer.ai.llm.errors import LlmErrorCode
-from race_engineer.ai.llm.models import CompletionResult
-from race_engineer.ai.llm.result import LlmResult
 from race_engineer.ai.models import EngineerAskResult
 from race_engineer.ai.service import EngineerAiService
 from race_engineer.context.aggregator import ContextAggregator
@@ -126,49 +123,15 @@ async def ask_engineer(
     return _ask_response_from_result(result)
 
 
-def _ask_response_from_result(
-    result: EngineerAskResult | LlmResult[CompletionResult],
-) -> dict[str, Any]:
-    if isinstance(result, EngineerAskResult):
-        return {
-            "success": True,
-            "text": result.text,
-            "model": result.model,
-            "latency_ms": result.latency_ms,
-            "fallback_used": result.fallback_used,
-        }
+def _ask_response_from_result(result: EngineerAskResult) -> dict[str, Any]:
+    return {
+        "success": True,
+        "text": result.text,
+        "model": result.model,
+        "latency_ms": result.latency_ms,
+        "fallback_used": result.fallback_used,
+    }
 
-    if result.success and result.data is not None:
-        return {
-            "success": True,
-            "text": result.data.text,
-            "model": result.data.model,
-            "latency_ms": result.data.latency_ms,
-            "fallback_used": False,
-        }
-
-    error_code = result.error_code.value if result.error_code else "unknown"
-    message = result.message or "engineer AI request failed"
-    status_code = _llm_status_code_for_error(result.error_code)
-
-    raise HTTPException(
-        status_code=status_code,
-        detail={
-            "success": False,
-            "error_code": error_code,
-            "message": message,
-        },
-    )
-
-
-def _llm_status_code_for_error(error_code: LlmErrorCode | None) -> int:
-    if error_code == LlmErrorCode.INVALID_API_KEY:
-        return status.HTTP_503_SERVICE_UNAVAILABLE
-    if error_code == LlmErrorCode.RATE_LIMIT:
-        return status.HTTP_429_TOO_MANY_REQUESTS
-    if error_code in {LlmErrorCode.NETWORK, LlmErrorCode.TIMEOUT}:
-        return status.HTTP_502_BAD_GATEWAY
-    return status.HTTP_502_BAD_GATEWAY
 
 
 def _response_from_result(

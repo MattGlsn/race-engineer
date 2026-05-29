@@ -2,8 +2,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from race_engineer.ai.fallback import LLM_FALLBACK_MESSAGE
 from race_engineer.ai.llm.client import OpenAiChatClient
 from race_engineer.ai.llm.config import OpenAiLlmConfig
+from race_engineer.ai.llm.errors import LlmErrorCode
 from race_engineer.ai.llm.models import CompletionResult
 from race_engineer.ai.llm.result import LlmResult
 from race_engineer.ai.models import EngineerAskResult
@@ -70,4 +72,20 @@ def test_ask_truncates_long_replies(service: EngineerAiService) -> None:
 
     assert isinstance(result, EngineerAskResult)
     assert len(result.text.split()) == 50
+
+
+def test_ask_returns_fallback_on_llm_failure(service: EngineerAiService) -> None:
+    context = empty_engineer_context()
+    service._llm_client.complete = MagicMock(  # type: ignore[method-assign]
+        return_value=LlmResult.fail(
+            error_code=LlmErrorCode.TIMEOUT,
+            message="OpenAI chat completion timed out",
+        )
+    )
+
+    result = service.ask("What's my fuel?", context)
+
+    assert result.fallback_used is True
+    assert result.text == LLM_FALLBACK_MESSAGE
+    assert result.error_code == LlmErrorCode.TIMEOUT
 

@@ -1,6 +1,6 @@
+from race_engineer.ai.fallback import LLM_FALLBACK_MESSAGE
 from race_engineer.ai.llm.client import OpenAiChatClient
-from race_engineer.ai.llm.models import CompletionResult
-from race_engineer.ai.llm.result import LlmResult
+from race_engineer.ai.llm.errors import LlmErrorCode
 from race_engineer.ai.models import EngineerAskResult
 from race_engineer.ai.prompt.builder import (
     DEFAULT_MAX_RESPONSE_WORDS,
@@ -24,7 +24,7 @@ class EngineerAiService:
         *,
         intent: str | None = None,
         max_response_words: int = DEFAULT_MAX_RESPONSE_WORDS,
-    ) -> EngineerAskResult | LlmResult[CompletionResult]:
+    ) -> EngineerAskResult:
         validate_engineer_context(context)
         messages = build_engineer_messages(
             user_text=user_text,
@@ -34,7 +34,11 @@ class EngineerAiService:
         )
         result = self._llm_client.complete(messages)
         if not result.success or result.data is None:
-            return result
+            return EngineerAskResult(
+                text=LLM_FALLBACK_MESSAGE,
+                fallback_used=True,
+                error_code=result.error_code or LlmErrorCode.PROVIDER_ERROR,
+            )
 
         limited_text = enforce_word_limit(result.data.text, max_response_words)
         return EngineerAskResult(
