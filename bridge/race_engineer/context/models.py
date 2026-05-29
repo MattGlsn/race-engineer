@@ -53,3 +53,34 @@ class DriverContextState(BaseModel):
     car_class: str | None = None
     laps_completed: int | None = None
     best_lap_time: float | None = None
+
+
+class LapFuelSummary(BaseModel):
+    """Condensed per-lap fuel usage for analytics context."""
+
+    model_config = ConfigDict(frozen=True)
+
+    lap: int
+    usage_liters: float
+
+
+class AnalyticsContextState(BaseModel):
+    """Aggregated fuel and lap analytics for AI engineer context."""
+
+    model_config = ConfigDict(frozen=True)
+
+    valid_lap_count: int = 0
+    rolling_avg_usage: float | None = None
+    last_lap_usage: float | None = None
+    recent_lap_fuel: tuple[LapFuelSummary, ...] = ()
+
+
+class EngineerContext(BaseModel):
+    """Root schema for AI engineer race context."""
+
+    model_config = ConfigDict(frozen=True)
+
+    session: SessionContextState
+    race: RaceContextState
+    driver: DriverContextState
+    analytics: AnalyticsContextState
