@@ -2,6 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from race_engineer.availability.requirements import OPTIONAL_VARIABLES, REQUIRED_VARIABLES
 from race_engineer.connection import ConnectionState, SdkConnectionService
 
 
@@ -11,6 +12,9 @@ def mock_sdk() -> MagicMock:
     sdk.is_initialized = False
     sdk.is_connected = False
     sdk.startup.return_value = False
+    sdk.list_variable_names.return_value = list(
+        REQUIRED_VARIABLES + OPTIONAL_VARIABLES
+    )
     return sdk
 
 
@@ -118,6 +122,24 @@ def test_reconnect_succeeds_on_second_attempt(
     assert service.reconnect() is True
     assert service.state == ConnectionState.CONNECTED
     assert mock_sdk.startup.call_count == 2
+
+
+def test_connect_logs_missing_optional_variables(
+    mock_sdk: MagicMock, caplog
+) -> None:
+    import logging
+
+    mock_sdk.startup.return_value = True
+    mock_sdk.is_initialized = True
+    mock_sdk.is_connected = True
+    mock_sdk.list_variable_names.return_value = list(REQUIRED_VARIABLES)
+    service = SdkConnectionService(sdk=mock_sdk)
+
+    with caplog.at_level(logging.WARNING):
+        assert service.connect() is True
+
+    assert service.state == ConnectionState.CONNECTED
+    assert "Missing optional SDK variables" in caplog.text
 
 
 def test_reconnect_fails_after_max_attempts(

@@ -38,3 +38,25 @@ def test_missing_optional_variables() -> None:
     assert report.has_missing_optional
     assert set(report.missing_optional) == set(OPTIONAL_VARIABLES)
     assert report.missing_required == ()
+
+
+def test_report_warnings_and_dict() -> None:
+    report = VariableAvailabilityReport(
+        available=frozenset({"Speed"}),
+        missing_required=("RPM",),
+        missing_optional=("CarIdxPosition",),
+    )
+
+    assert report.warnings == (
+        "Missing required SDK variables: RPM",
+        "Missing optional SDK variables: CarIdxPosition",
+    )
+    assert report.as_dict() == {
+        "available_count": 1,
+        "missing_required": ["RPM"],
+        "missing_optional": ["CarIdxPosition"],
+        "warnings": [
+            "Missing required SDK variables: RPM",
+            "Missing optional SDK variables: CarIdxPosition",
+        ],
+    }

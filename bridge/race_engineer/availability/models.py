@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass(frozen=True, slots=True)
@@ -20,3 +21,26 @@ class VariableAvailabilityReport:
     @property
     def is_fully_available(self) -> bool:
         return not self.has_missing_required and not self.has_missing_optional
+
+    @property
+    def warnings(self) -> tuple[str, ...]:
+        messages: list[str] = []
+        if self.missing_required:
+            messages.append(
+                "Missing required SDK variables: "
+                + ", ".join(self.missing_required)
+            )
+        if self.missing_optional:
+            messages.append(
+                "Missing optional SDK variables: "
+                + ", ".join(self.missing_optional)
+            )
+        return tuple(messages)
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "available_count": len(self.available),
+            "missing_required": list(self.missing_required),
+            "missing_optional": list(self.missing_optional),
+            "warnings": list(self.warnings),
+        }
