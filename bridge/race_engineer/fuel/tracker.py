@@ -1,3 +1,5 @@
+from race_engineer.fuel.average import rolling_average
+from race_engineer.fuel.filter import is_spike
 from race_engineer.fuel.models import FuelConsumptionSnapshot, LapFuelRecord
 from race_engineer.fuel.usage import calculate_lap_usage
 from race_engineer.storage.fuel_repository import FuelLapRepository
@@ -84,6 +86,9 @@ class FuelConsumptionTracker:
         if usage is None or self._session_key is None:
             return
 
+        if is_spike(usage, self._valid_usages):
+            return
+
         record = LapFuelRecord(
             lap=lap,
             fuel_start=fuel_start if fuel_start is not None else fuel_end,
@@ -96,6 +101,4 @@ class FuelConsumptionTracker:
         self._valid_usages.append(usage)
 
     def _mean_usage(self) -> float | None:
-        if not self._valid_usages:
-            return None
-        return round(sum(self._valid_usages) / len(self._valid_usages), 3)
+        return rolling_average(self._valid_usages)

@@ -49,6 +49,20 @@ def test_tracker_ignores_invalid_usage(repository: FuelLapRepository) -> None:
     assert repository.list_for_session("Daytona|Practice") == []
 
 
+def test_tracker_rejects_spike_lap(repository: FuelLapRepository) -> None:
+    tracker = FuelConsumptionTracker(repository=repository)
+    tracker.begin_session("Daytona|Practice")
+
+    tracker.update(30.0, 0)
+    tracker.update(28.5, 1)
+    tracker.update(27.0, 2)
+    snapshot = tracker.update(10.0, 3)
+
+    assert snapshot.valid_lap_count == 2
+    assert snapshot.last_lap_usage == 1.5
+    assert len(repository.list_for_session("Daytona|Practice")) == 2
+
+
 def test_tracker_resets_on_lap_regression() -> None:
     tracker = FuelConsumptionTracker()
     tracker.begin_session("Daytona|Practice")

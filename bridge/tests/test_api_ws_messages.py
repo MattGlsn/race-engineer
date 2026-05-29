@@ -2,6 +2,7 @@ from race_engineer.api.ws.messages import (
     build_race_state_message,
     build_telemetry_message,
 )
+from race_engineer.fuel import FuelConsumptionSnapshot
 from race_engineer.gap import GapAheadSnapshot, GapBehindSnapshot
 from race_engineer.position import PlayerPositionSnapshot
 from race_engineer.session import Driver, Session
@@ -79,6 +80,28 @@ def test_build_race_state_message_with_gap_ahead() -> None:
         "target_car_idx": 2,
         "gap_seconds": 1.25,
         "distance_meters": 87.5,
+    }
+
+
+def test_build_race_state_message_with_fuel_consumption() -> None:
+    message = build_race_state_message(
+        Session(track_name="Daytona"),
+        StandingsSnapshot(),
+        fuel_consumption=FuelConsumptionSnapshot(
+            last_lap=3,
+            last_lap_usage=1.5,
+            rolling_avg_usage=1.45,
+            valid_lap_count=3,
+            fuel_at_lap_start=27.0,
+        ),
+    )
+
+    assert message["data"]["fuel_consumption"] == {
+        "last_lap": 3,
+        "last_lap_usage": 1.5,
+        "rolling_avg_usage": 1.45,
+        "valid_lap_count": 3,
+        "fuel_at_lap_start": 27.0,
     }
 
 
