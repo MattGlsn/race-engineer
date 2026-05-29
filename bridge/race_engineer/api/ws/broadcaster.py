@@ -6,6 +6,7 @@ from race_engineer.api.ws.manager import WebSocketConnectionManager
 from race_engineer.api.ws.messages import build_race_state_message, build_telemetry_message
 from race_engineer.connection import SdkConnectionService
 from race_engineer.session import SessionInfoReader
+from race_engineer.position import PositionCalculator
 from race_engineer.standings import StandingsReader
 from race_engineer.telemetry import TelemetryVariableReader
 
@@ -25,6 +26,7 @@ class TelemetryBroadcaster:
         telemetry_reader: TelemetryVariableReader | None = None,
         session_reader: SessionInfoReader | None = None,
         standings_reader: StandingsReader | None = None,
+        position_calculator: PositionCalculator | None = None,
         telemetry_interval: float = TELEMETRY_INTERVAL_SECONDS,
         race_state_interval: float | None = RACE_STATE_INTERVAL_SECONDS,
     ) -> None:
@@ -44,6 +46,11 @@ class TelemetryBroadcaster:
             standings_reader
             if standings_reader is not None
             else StandingsReader(sdk=connection_service.sdk)
+        )
+        self._position_calculator = (
+            position_calculator
+            if position_calculator is not None
+            else PositionCalculator(sdk=connection_service.sdk)
         )
         self._telemetry_interval = telemetry_interval
         self._race_state_interval = race_state_interval
@@ -85,8 +92,13 @@ class TelemetryBroadcaster:
                         self._last_race_state_at = now
                         session = self._session_reader.read()
                         standings = self._standings_reader.read_snapshot()
+                        player_position = self._position_calculator.calculate()
                         await self._manager.broadcast(
-                            build_race_state_message(session, standings),
+                            build_race_state_message(
+                                session,
+                                standings,
+                                player_position,
+                            ),
                         )
 
                 await asyncio.sleep(self._telemetry_interval)
