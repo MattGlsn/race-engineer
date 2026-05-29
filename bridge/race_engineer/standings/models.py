@@ -10,6 +10,7 @@ class DriverStanding:
     laps: int | None = None
     class_position: int | None = None
     class_id: int | None = None
+    best_lap_time: float | None = None
 
 
 @dataclass(frozen=True, slots=True)

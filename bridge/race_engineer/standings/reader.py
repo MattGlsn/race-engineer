@@ -27,6 +27,7 @@ class StandingsReader:
             laps = self._read_int_array(var.CAR_IDX_LAP_COMPLETED)
             class_positions = self._read_int_array(var.CAR_IDX_CLASS_POSITION)
             class_ids = self._read_int_array(var.CAR_IDX_CLASS)
+            best_lap_times = self._read_float_array(var.CAR_IDX_BEST_LAP_TIME)
 
             drivers = [
                 DriverStanding(
@@ -38,6 +39,10 @@ class StandingsReader:
                         car_idx,
                     ),
                     class_id=self._class_id_for_car(class_ids, car_idx),
+                    best_lap_time=self._best_lap_time_for_car(
+                        best_lap_times,
+                        car_idx,
+                    ),
                 )
                 for car_idx, position in enumerate(positions[:MAX_CARS])
                 if position > 0
@@ -60,6 +65,21 @@ class StandingsReader:
                 result.append(int(item))
             except (TypeError, ValueError):
                 result.append(0)
+        return result
+
+    def _read_float_array(self, name: str) -> list[float] | None:
+        value = self._read_raw(name)
+        if value is None:
+            return None
+        if not isinstance(value, list):
+            return None
+
+        result: list[float] = []
+        for item in value[:MAX_CARS]:
+            try:
+                result.append(float(item))
+            except (TypeError, ValueError):
+                result.append(0.0)
         return result
 
     def _lap_count_for_car(
@@ -94,6 +114,17 @@ class StandingsReader:
 
         class_id = class_ids[car_idx]
         return class_id if class_id >= 0 else None
+
+    def _best_lap_time_for_car(
+        self,
+        best_lap_times: list[float] | None,
+        car_idx: int,
+    ) -> float | None:
+        if best_lap_times is None or car_idx >= len(best_lap_times):
+            return None
+
+        best_lap_time = best_lap_times[car_idx]
+        return best_lap_time if best_lap_time > 0 else None
 
     def _read_raw(self, name: str) -> Any | None:
         try:

@@ -157,6 +157,53 @@ def test_read_class_positions_multiclass(mock_sdk: MagicMock) -> None:
     )
 
 
+def test_read_best_lap_times(mock_sdk: MagicMock) -> None:
+    _connected_sdk(mock_sdk)
+    positions = [0] * 64
+    positions[0] = 1
+    positions[8] = 2
+    best_laps = [0.0] * 64
+    best_laps[0] = 87.512
+    best_laps[8] = 88.004
+    _var_map(
+        mock_sdk,
+        {
+            "CarIdxPosition": positions,
+            "CarIdxBestLapTime": best_laps,
+        },
+    )
+    reader = StandingsReader(sdk=mock_sdk)
+
+    snapshot = reader.read_snapshot()
+
+    assert snapshot.drivers == (
+        DriverStanding(car_idx=0, position=1, best_lap_time=87.512),
+        DriverStanding(car_idx=8, position=2, best_lap_time=88.004),
+    )
+
+
+def test_invalid_best_lap_time_returns_none(mock_sdk: MagicMock) -> None:
+    _connected_sdk(mock_sdk)
+    positions = [0] * 64
+    positions[3] = 1
+    best_laps = [0.0] * 64
+    best_laps[3] = -1.0
+    _var_map(
+        mock_sdk,
+        {
+            "CarIdxPosition": positions,
+            "CarIdxBestLapTime": best_laps,
+        },
+    )
+    reader = StandingsReader(sdk=mock_sdk)
+
+    snapshot = reader.read_snapshot()
+
+    assert snapshot.drivers == (
+        DriverStanding(car_idx=3, position=1, best_lap_time=None),
+    )
+
+
 def test_unfreeze_called_on_read_error(mock_sdk: MagicMock) -> None:
     _connected_sdk(mock_sdk)
     mock_sdk.get_var.side_effect = RuntimeError("buffer error")
