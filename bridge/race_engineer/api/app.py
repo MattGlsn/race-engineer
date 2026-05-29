@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from race_engineer.api.config import get_cors_origins
 from race_engineer.api.routes.health import router as health_router
+from race_engineer.api.routes.voice import router as voice_router
 from race_engineer.api.routes.ws import router as ws_router
 from race_engineer.api.ws import TelemetryBroadcaster, WebSocketConnectionManager
 from race_engineer.connection import SdkConnectionService
@@ -16,6 +17,9 @@ from race_engineer.fuel import FuelConsumptionTracker
 from race_engineer.storage.database import connect
 from race_engineer.storage.fuel_repository import FuelLapRepository
 from race_engineer.telemetry import TelemetryVariableReader
+from race_engineer.voice.pipeline import VoicePipeline
+from race_engineer.voice.stt.client import ElevenLabsSttClient
+from race_engineer.voice.stt.config import load_elevenlabs_stt_config
 
 
 @asynccontextmanager
@@ -34,6 +38,7 @@ def create_app(
     connection_service: SdkConnectionService | None = None,
     ws_manager: WebSocketConnectionManager | None = None,
     broadcaster: TelemetryBroadcaster | None = None,
+    voice_pipeline: VoicePipeline | None = None,
 ) -> FastAPI:
     app = FastAPI(
         title="Race Engineer Bridge API",
@@ -66,6 +71,7 @@ def create_app(
     app.state.connection_service = resolved_connection_service
     app.state.ws_manager = resolved_ws_manager
     app.state.broadcaster = resolved_broadcaster
+    app.state.voice_pipeline = voice_pipeline or _build_voice_pipeline()
     app.add_middleware(
         CORSMiddleware,
         allow_origins=get_cors_origins(),
@@ -74,8 +80,16 @@ def create_app(
         allow_headers=["*"],
     )
     app.include_router(health_router)
+    app.include_router(voice_router)
     app.include_router(ws_router)
     return app
+
+
+def _build_voice_pipeline() -> VoicePipeline | None:
+    config = load_elevenlabs_stt_config()
+    if config is None:
+        return None
+    return VoicePipeline(ElevenLabsSttClient(config))
 
 
 app = create_app()
