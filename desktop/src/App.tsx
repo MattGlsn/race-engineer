@@ -1,5 +1,6 @@
 import { AppShell } from "./components/layout/AppShell";
 import { GapWidget } from "./components/widgets/GapWidget";
+import { PositionWidget } from "./components/widgets/PositionWidget";
 import { useBridgeWebSocket } from "./hooks/useBridgeWebSocket";
 
 export default function App() {
@@ -11,7 +12,9 @@ export default function App() {
         <div className="dashboard-grid__slot">
           <GapWidget raceState={bridge.raceState} />
         </div>
-        <div className="dashboard-grid__slot" aria-hidden="true" />
+        <div className="dashboard-grid__slot">
+          <PositionWidget raceState={bridge.raceState} />
+        </div>
         <div className="dashboard-grid__slot" aria-hidden="true" />
         <div className="dashboard-grid__slot" aria-hidden="true" />
       </div>
