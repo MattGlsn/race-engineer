@@ -36,6 +36,7 @@ uvicorn race_engineer.api.app:app --reload
 - Voice STT: `POST http://127.0.0.1:8000/voice/transcribe` (WAV upload; requires `ELEVENLABS_API_KEY`)
 - Intent router: `POST http://127.0.0.1:8000/voice/route` with JSON `{"text":"..."}` → `intent` (`coaching`, `fuel`, `position`, `gap`, `lap`, or `unknown`)
 - Engineer TTS: `POST http://127.0.0.1:8000/voice/speak` with JSON `{"text":"..."}` (requires `ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID`)
+- Engineer AI: `POST http://127.0.0.1:8000/voice/ask` with JSON `{"text":"...", "intent":"fuel"}` (optional intent; requires `OPENAI_API_KEY`)
 - Interactive docs: `http://127.0.0.1:8000/docs`
 
 Optional environment:
@@ -44,6 +45,8 @@ Optional environment:
 - `ELEVENLABS_STT_MODEL`, `ELEVENLABS_TTS_MODEL`, `ELEVENLABS_TTS_OUTPUT_FORMAT` (default `pcm_16000`)
 - `VOICE_OUTPUT_VOLUME` (0.0–1.0, default `1.0`)
 - `VOICE_HOTKEY` (default `ctrl+shift+space`) — global push-to-talk while the bridge is running; hold to record, release to transcribe and push a `transcript` message to WebSocket clients
+- `OPENAI_API_KEY` — enables engineer AI replies via `/voice/ask`
+- `OPENAI_MODEL` (default `gpt-4o-mini`), `OPENAI_BASE_URL`, `LLM_TIMEOUT_SECONDS` (default `8.0`), `LLM_MAX_COMPLETION_TOKENS` (default `150`)
 
 ## Usage
 
