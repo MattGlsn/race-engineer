@@ -120,12 +120,22 @@ class ElevenLabsSttClient:
         if language_code is not None and not isinstance(language_code, str):
             language_code = None
 
+        duration_ms = _duration_ms_from_payload(payload)
+
         return VoicePipelineResult.ok(
             TranscriptResult(
                 text=text,
                 language_code=language_code,
+                duration_ms=duration_ms,
             )
         )
+
+
+def _duration_ms_from_payload(payload: dict[str, Any]) -> int | None:
+    audio_duration_secs = payload.get("audio_duration_secs")
+    if isinstance(audio_duration_secs, (int, float)) and audio_duration_secs >= 0:
+        return int(audio_duration_secs * 1000)
+    return None
 
 
 def _response_detail(response: httpx.Response) -> str | None:

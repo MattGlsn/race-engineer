@@ -17,7 +17,11 @@ def test_transcribe_returns_transcript(config: ElevenLabsSttConfig) -> None:
     http_client = MagicMock(spec=httpx.Client)
     http_client.post.return_value = httpx.Response(
         200,
-        json={"text": "box box box", "language_code": "en"},
+        json={
+            "text": "box box box",
+            "language_code": "eng",
+            "audio_duration_secs": 1.25,
+        },
     )
 
     client = ElevenLabsSttClient(config, http_client=http_client)
@@ -26,7 +30,8 @@ def test_transcribe_returns_transcript(config: ElevenLabsSttConfig) -> None:
     assert result.success is True
     assert result.data is not None
     assert result.data.text == "box box box"
-    assert result.data.language_code == "en"
+    assert result.data.language_code == "eng"
+    assert result.data.duration_ms == 1250
 
     http_client.post.assert_called_once()
     args, kwargs = http_client.post.call_args
