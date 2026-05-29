@@ -13,6 +13,10 @@ dependencies = [
     "PyYAML>=6.0",
     "fastapi>=0.115",
     "uvicorn[standard]>=0.32",
+    "numpy>=2.0",
+    "sounddevice>=0.5",
+    "httpx>=0.28",
+    "python-multipart>=0.0.9",
 ]
 
 [project.optional-dependencies]
