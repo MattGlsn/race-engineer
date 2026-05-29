@@ -2,9 +2,8 @@ import logging
 import time
 from typing import Any
 
-import irsdk
-
 from race_engineer.connection.state import ConnectionState
+from race_engineer.sdk.wrapper import IrSdkWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -17,11 +16,11 @@ class SdkConnectionService:
 
     def __init__(
         self,
-        sdk: irsdk.IRSDK | None = None,
+        sdk: IrSdkWrapper | None = None,
         reconnect_attempts: int = DEFAULT_RECONNECT_ATTEMPTS,
         reconnect_delay_seconds: float = DEFAULT_RECONNECT_DELAY_SECONDS,
     ) -> None:
-        self._sdk = sdk if sdk is not None else irsdk.IRSDK()
+        self._sdk = sdk if sdk is not None else IrSdkWrapper()
         self._reconnect_attempts = reconnect_attempts
         self._reconnect_delay_seconds = reconnect_delay_seconds
         self._state = ConnectionState.DISCONNECTED
@@ -39,8 +38,8 @@ class SdkConnectionService:
         return {
             "state": self._state.value,
             "is_connected": self.is_connected,
-            "sdk_initialized": bool(self._sdk.is_initialized),
-            "sdk_connected": bool(self._sdk.is_connected),
+            "sdk_initialized": self._sdk.is_initialized,
+            "sdk_connected": self._sdk.is_connected,
         }
 
     def connect(self) -> bool:
@@ -115,7 +114,7 @@ class SdkConnectionService:
         return False
 
     def _sdk_is_healthy(self) -> bool:
-        return bool(self._sdk.is_initialized and self._sdk.is_connected)
+        return self._sdk.is_initialized and self._sdk.is_connected
 
     def check_health(self) -> bool:
         """Verify the SDK session is still live; reset state when connection is lost."""
