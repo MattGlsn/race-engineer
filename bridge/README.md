@@ -42,6 +42,7 @@ Optional environment:
 - `CORS_ORIGINS` (comma-separated) to override default localhost origins
 - `ELEVENLABS_STT_MODEL`, `ELEVENLABS_TTS_MODEL`, `ELEVENLABS_TTS_OUTPUT_FORMAT` (default `pcm_16000`)
 - `VOICE_OUTPUT_VOLUME` (0.0–1.0, default `1.0`)
+- `VOICE_HOTKEY` (default `ctrl+shift+space`) — global push-to-talk while the bridge is running; hold to record, release to transcribe and push a `transcript` message to WebSocket clients
 
 ## Usage
 
