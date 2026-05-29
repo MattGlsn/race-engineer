@@ -1,15 +1,26 @@
+import { useEffect } from "react";
+
+import { useScrollPersistence } from "../../hooks/useScrollPersistence";
 import type { TranscriptMessage } from "../../types/transcript";
 import { TranscriptMessageBubble } from "./TranscriptMessageBubble";
 
 type TranscriptMessageListProps = {
-  messages: TranscriptMessage[];
+  conversationId: string | null;
   conversationTitle: string | null;
+  messages: TranscriptMessage[];
 };
 
 export function TranscriptMessageList({
-  messages,
+  conversationId,
   conversationTitle,
+  messages,
 }: TranscriptMessageListProps) {
+  const { containerRef, scrollToLatestIfPinned } = useScrollPersistence(conversationId);
+
+  useEffect(() => {
+    scrollToLatestIfPinned();
+  }, [messages.length, scrollToLatestIfPinned]);
+
   if (!conversationTitle) {
     return (
       <div className="transcript-message-list transcript-message-list--empty">
@@ -27,7 +38,12 @@ export function TranscriptMessageList({
   }
 
   return (
-    <div className="transcript-message-list" role="log" aria-label={`${conversationTitle} transcript`}>
+    <div
+      ref={containerRef}
+      className="transcript-message-list"
+      role="log"
+      aria-label={`${conversationTitle} transcript`}
+    >
       {messages.map((message) => (
         <TranscriptMessageBubble key={message.id} message={message} />
       ))}
