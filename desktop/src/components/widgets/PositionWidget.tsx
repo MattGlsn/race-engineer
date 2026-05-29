@@ -4,6 +4,7 @@ import { WidgetCard } from "./WidgetCard";
 
 type PositionWidgetProps = {
   raceState: RaceStateData | null;
+  dataLive: boolean;
 };
 
 function MetricRow({ label, value }: { label: string; value: string }) {
@@ -15,11 +16,11 @@ function MetricRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function PositionWidget({ raceState }: PositionWidgetProps) {
+export function PositionWidget({ raceState, dataLive }: PositionWidgetProps) {
   const player = raceState?.player;
 
   return (
-    <WidgetCard title="Position">
+    <WidgetCard title="Position" dataLive={dataLive}>
       <MetricRow
         label="Overall"
         value={formatPosition(

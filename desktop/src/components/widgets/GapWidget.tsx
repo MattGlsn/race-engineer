@@ -4,6 +4,7 @@ import { WidgetCard } from "./WidgetCard";
 
 type GapWidgetProps = {
   raceState: RaceStateData | null;
+  dataLive: boolean;
 };
 
 function MetricRow({ label, value }: { label: string; value: string }) {
@@ -15,12 +16,12 @@ function MetricRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function GapWidget({ raceState }: GapWidgetProps) {
+export function GapWidget({ raceState, dataLive }: GapWidgetProps) {
   const ahead = raceState?.gap_ahead;
   const behind = raceState?.gap_behind;
 
   return (
-    <WidgetCard title="Gap">
+    <WidgetCard title="Gap" dataLive={dataLive}>
       <MetricRow label="Ahead" value={formatGapSeconds(ahead?.gap_seconds)} />
       <MetricRow label="Behind" value={formatGapSeconds(behind?.gap_seconds)} />
       <MetricRow

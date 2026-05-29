@@ -5,6 +5,7 @@ import { WidgetCard } from "./WidgetCard";
 
 type LapTimingWidgetProps = {
   raceState: RaceStateData | null;
+  dataLive: boolean;
 };
 
 function MetricRow({ label, value }: { label: string; value: string }) {
@@ -16,13 +17,13 @@ function MetricRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function LapTimingWidget({ raceState }: LapTimingWidgetProps) {
+export function LapTimingWidget({ raceState, dataLive }: LapTimingWidgetProps) {
   const standing = findPlayerStanding(raceState);
   const track = raceState?.session.track_name;
   const sessionType = raceState?.session.session_type;
 
   return (
-    <WidgetCard title="Lap timing">
+    <WidgetCard title="Lap timing" dataLive={dataLive}>
       <MetricRow
         label="Best lap"
         value={formatLapTime(standing?.best_lap_time)}

@@ -4,6 +4,7 @@ import { WidgetCard } from "./WidgetCard";
 
 type FuelWidgetProps = {
   raceState: RaceStateData | null;
+  dataLive: boolean;
 };
 
 function MetricRow({ label, value }: { label: string; value: string }) {
@@ -20,7 +21,7 @@ export function FuelWidget({ raceState }: FuelWidgetProps) {
   const projection = raceState?.fuel_projection;
 
   return (
-    <WidgetCard title="Fuel">
+    <WidgetCard title="Fuel" dataLive={dataLive}>
       <MetricRow
         label="Last lap use"
         value={formatLiters(consumption?.last_lap_usage)}
