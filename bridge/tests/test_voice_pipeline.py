@@ -73,6 +73,30 @@ def test_transcribe_from_microphone_uses_recorder(
     recorder.stop.assert_called_once()
 
 
+def test_start_and_stop_and_transcribe(
+    pipeline: VoicePipeline,
+    stt_client: MagicMock,
+) -> None:
+    recorder = pipeline._recorder
+    recorder.start.return_value = None
+    recorder.stop.return_value = AudioBuffer(
+        pcm_bytes=b"\x00" * 3_200,
+        sample_rate=16_000,
+    )
+    stt_client.transcribe.return_value = VoicePipelineResult.ok(
+        TranscriptResult(text="clear", language_code="en")
+    )
+
+    pipeline.start_recording()
+    result = pipeline.stop_and_transcribe()
+
+    assert result.success is True
+    assert result.data is not None
+    assert result.data.text == "clear"
+    recorder.start.assert_called_once()
+    recorder.stop.assert_called_once()
+
+
 def test_transcribe_from_microphone_maps_recording_errors(
     pipeline: VoicePipeline,
 ) -> None:

@@ -20,6 +20,33 @@ class VoicePipeline:
         self._stt_client = stt_client
         self._recorder = recorder or AudioRecorder()
 
+    @property
+    def recorder(self) -> AudioRecorder:
+        return self._recorder
+
+    def start_recording(self) -> None:
+        self._recorder.start()
+
+    def stop_and_transcribe(
+        self,
+        *,
+        language: str = "en",
+    ) -> VoicePipelineResult[TranscriptResult]:
+        try:
+            buffer = self._recorder.stop()
+        except RecordingError as exc:
+            return VoicePipelineResult.fail(
+                error_code=VoiceErrorCode.PROVIDER_ERROR,
+                message=str(exc),
+            )
+        except OSError as exc:
+            return VoicePipelineResult.fail(
+                error_code=VoiceErrorCode.PERMISSION_DENIED,
+                message=str(exc),
+            )
+
+        return self.transcribe_buffer(buffer, language=language)
+
     def transcribe_buffer(
         self,
         buffer: AudioBuffer,
@@ -57,8 +84,7 @@ class VoicePipeline:
         language: str = "en",
     ) -> VoicePipelineResult[TranscriptResult]:
         try:
-            self._recorder.start()
-            buffer = self._recorder.stop()
+            self.start_recording()
         except RecordingError as exc:
             return VoicePipelineResult.fail(
                 error_code=VoiceErrorCode.PROVIDER_ERROR,
@@ -70,7 +96,7 @@ class VoicePipeline:
                 message=str(exc),
             )
 
-        return self.transcribe_buffer(buffer, language=language)
+        return self.stop_and_transcribe(language=language)
 
 
 def _validation_failure(message: str) -> VoicePipelineResult[TranscriptResult]:

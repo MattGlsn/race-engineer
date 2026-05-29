@@ -14,6 +14,24 @@ def build_connection_message(connection: dict[str, Any]) -> dict[str, Any]:
     return {"type": "connection", "ts": time.time(), "data": connection}
 
 
+def build_transcript_message(
+    *,
+    role: str,
+    text: str,
+    conversation_id: str | None = None,
+    track_name: str | None = None,
+    session_type: str | None = None,
+) -> dict[str, Any]:
+    data: dict[str, Any] = {"role": role, "text": text}
+    if conversation_id is not None:
+        data["conversation_id"] = conversation_id
+    if track_name is not None:
+        data["track_name"] = track_name
+    if session_type is not None:
+        data["session_type"] = session_type
+    return {"type": "transcript", "ts": time.time(), "data": data}
+
+
 def build_telemetry_message(snapshot: TelemetrySnapshot) -> dict[str, Any]:
     return {
         "type": "telemetry",
