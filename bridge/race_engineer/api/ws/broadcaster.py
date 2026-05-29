@@ -6,7 +6,13 @@ from race_engineer.api.ws.manager import WebSocketConnectionManager
 from race_engineer.api.ws.messages import build_race_state_message, build_telemetry_message
 from race_engineer.connection import SdkConnectionService
 from race_engineer.session import SessionInfoReader
-from race_engineer.fuel import FuelConsumptionTracker, PlayerLapReader, build_session_key
+from race_engineer.fuel import (
+    FuelConsumptionTracker,
+    FuelProjectionEngine,
+    PlayerLapReader,
+    build_session_key,
+)
+from race_engineer.fuel.projection import SessionLapsReader
 from race_engineer.gap import GapAheadCalculator, GapBehindCalculator
 from race_engineer.position import PositionCalculator
 from race_engineer.standings import StandingsReader
@@ -32,6 +38,7 @@ class TelemetryBroadcaster:
         gap_calculator: GapAheadCalculator | None = None,
         gap_behind_calculator: GapBehindCalculator | None = None,
         fuel_tracker: FuelConsumptionTracker | None = None,
+        fuel_projection_engine: FuelProjectionEngine | None = None,
         lap_reader: PlayerLapReader | None = None,
         telemetry_interval: float = TELEMETRY_INTERVAL_SECONDS,
         race_state_interval: float | None = RACE_STATE_INTERVAL_SECONDS,
@@ -70,6 +77,13 @@ class TelemetryBroadcaster:
         )
         self._fuel_tracker = (
             fuel_tracker if fuel_tracker is not None else FuelConsumptionTracker()
+        )
+        self._fuel_projection_engine = (
+            fuel_projection_engine
+            if fuel_projection_engine is not None
+            else FuelProjectionEngine(
+                session_laps_reader=SessionLapsReader(sdk=connection_service.sdk),
+            )
         )
         self._lap_reader = (
             lap_reader
@@ -134,6 +148,10 @@ class TelemetryBroadcaster:
                         player_position = self._position_calculator.calculate()
                         gap_ahead = self._gap_calculator.calculate()
                         gap_behind = self._gap_behind_calculator.calculate()
+                        fuel_projection = self._fuel_projection_engine.project(
+                            snapshot.fuel,
+                            fuel_snapshot,
+                        )
                         await self._manager.broadcast(
                             build_race_state_message(
                                 session,
@@ -142,6 +160,7 @@ class TelemetryBroadcaster:
                                 gap_ahead,
                                 gap_behind,
                                 fuel_snapshot,
+                                fuel_projection,
                             ),
                         )
 
