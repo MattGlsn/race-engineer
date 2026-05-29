@@ -67,6 +67,15 @@ def mock_gap_calculator() -> MagicMock:
 
 
 @pytest.fixture
+def mock_gap_behind_calculator() -> MagicMock:
+    from race_engineer.gap import GapBehindSnapshot
+
+    calculator = MagicMock()
+    calculator.calculate.return_value = GapBehindSnapshot()
+    return calculator
+
+
+@pytest.fixture
 def mock_telemetry_reader() -> MagicMock:
     reader = MagicMock()
     reader.read_snapshot.return_value = TelemetrySnapshot(
@@ -91,6 +100,7 @@ def broadcaster(
     mock_standings_reader: MagicMock,
     mock_position_calculator: MagicMock,
     mock_gap_calculator: MagicMock,
+    mock_gap_behind_calculator: MagicMock,
 ) -> TelemetryBroadcaster:
     return TelemetryBroadcaster(
         ws_manager,
@@ -100,6 +110,7 @@ def broadcaster(
         standings_reader=mock_standings_reader,
         position_calculator=mock_position_calculator,
         gap_calculator=mock_gap_calculator,
+        gap_behind_calculator=mock_gap_behind_calculator,
         telemetry_interval=0.01,
         race_state_interval=0.01,
     )
@@ -202,6 +213,11 @@ def test_websocket_broadcasts_race_state(
     mock_standings_reader.read_snapshot.assert_called()
     mock_position_calculator.calculate.assert_called()
     assert race_state["data"]["gap_ahead"] == {
+        "target_car_idx": None,
+        "gap_seconds": None,
+        "distance_meters": None,
+    }
+    assert race_state["data"]["gap_behind"] == {
         "target_car_idx": None,
         "gap_seconds": None,
         "distance_meters": None,

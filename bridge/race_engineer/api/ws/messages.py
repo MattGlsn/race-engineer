@@ -1,7 +1,7 @@
 import time
 from typing import Any
 
-from race_engineer.gap.models import GapAheadSnapshot
+from race_engineer.gap.models import GapAheadSnapshot, GapBehindSnapshot
 from race_engineer.position.models import PlayerPositionSnapshot
 from race_engineer.session.models import Driver, Session
 from race_engineer.standings.models import DriverStanding, StandingsSnapshot
@@ -25,6 +25,7 @@ def build_race_state_message(
     standings: StandingsSnapshot,
     player_position: PlayerPositionSnapshot | None = None,
     gap_ahead: GapAheadSnapshot | None = None,
+    gap_behind: GapBehindSnapshot | None = None,
 ) -> dict[str, Any]:
     return {
         "type": "race_state",
@@ -34,6 +35,7 @@ def build_race_state_message(
             "standings": _standings_payload(standings),
             "player": _player_position_payload(player_position),
             "gap_ahead": _gap_ahead_payload(gap_ahead),
+            "gap_behind": _gap_behind_payload(gap_behind),
         },
     }
 
@@ -118,4 +120,19 @@ def _gap_ahead_fields(gap_ahead: GapAheadSnapshot) -> dict[str, Any]:
         "target_car_idx": gap_ahead.target_car_idx,
         "gap_seconds": gap_ahead.gap_seconds,
         "distance_meters": gap_ahead.distance_meters,
+    }
+
+
+def _gap_behind_payload(gap_behind: GapBehindSnapshot | None) -> dict[str, Any]:
+    if gap_behind is None:
+        return _gap_behind_fields(GapBehindSnapshot())
+
+    return _gap_behind_fields(gap_behind)
+
+
+def _gap_behind_fields(gap_behind: GapBehindSnapshot) -> dict[str, Any]:
+    return {
+        "target_car_idx": gap_behind.target_car_idx,
+        "gap_seconds": gap_behind.gap_seconds,
+        "distance_meters": gap_behind.distance_meters,
     }

@@ -2,7 +2,7 @@ from race_engineer.api.ws.messages import (
     build_race_state_message,
     build_telemetry_message,
 )
-from race_engineer.gap import GapAheadSnapshot
+from race_engineer.gap import GapAheadSnapshot, GapBehindSnapshot
 from race_engineer.position import PlayerPositionSnapshot
 from race_engineer.session import Driver, Session
 from race_engineer.standings import DriverStanding, StandingsSnapshot
@@ -50,6 +50,11 @@ def test_build_race_state_message() -> None:
         "gap_seconds": None,
         "distance_meters": None,
     }
+    assert message["data"]["gap_behind"] == {
+        "target_car_idx": None,
+        "gap_seconds": None,
+        "distance_meters": None,
+    }
 
 
 def test_build_race_state_message_with_gap_ahead() -> None:
@@ -67,4 +72,22 @@ def test_build_race_state_message_with_gap_ahead() -> None:
         "target_car_idx": 2,
         "gap_seconds": 1.25,
         "distance_meters": 87.5,
+    }
+
+
+def test_build_race_state_message_with_gap_behind() -> None:
+    message = build_race_state_message(
+        Session(track_name="Daytona"),
+        StandingsSnapshot(),
+        gap_behind=GapBehindSnapshot(
+            target_car_idx=5,
+            gap_seconds=2.0,
+            distance_meters=100.0,
+        ),
+    )
+
+    assert message["data"]["gap_behind"] == {
+        "target_car_idx": 5,
+        "gap_seconds": 2.0,
+        "distance_meters": 100.0,
     }
