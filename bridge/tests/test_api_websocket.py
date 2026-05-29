@@ -7,6 +7,7 @@ from race_engineer.api.app import create_app
 from race_engineer.api.ws import TelemetryBroadcaster, WebSocketConnectionManager
 from race_engineer.connection import SdkConnectionService
 from race_engineer.session import Session
+from race_engineer.position import PlayerPositionSnapshot
 from race_engineer.standings import DriverStanding, StandingsSnapshot
 from race_engineer.telemetry import TelemetrySnapshot
 
@@ -45,6 +46,18 @@ def mock_standings_reader() -> MagicMock:
 
 
 @pytest.fixture
+def mock_position_calculator() -> MagicMock:
+    calculator = MagicMock()
+    calculator.calculate.return_value = PlayerPositionSnapshot(
+        car_idx=0,
+        overall_position=1,
+        class_position=1,
+        field_size=20,
+    )
+    return calculator
+
+
+@pytest.fixture
 def mock_telemetry_reader() -> MagicMock:
     reader = MagicMock()
     reader.read_snapshot.return_value = TelemetrySnapshot(
@@ -67,6 +80,7 @@ def broadcaster(
     mock_telemetry_reader: MagicMock,
     mock_session_reader: MagicMock,
     mock_standings_reader: MagicMock,
+    mock_position_calculator: MagicMock,
 ) -> TelemetryBroadcaster:
     return TelemetryBroadcaster(
         ws_manager,
@@ -74,6 +88,7 @@ def broadcaster(
         telemetry_reader=mock_telemetry_reader,
         session_reader=mock_session_reader,
         standings_reader=mock_standings_reader,
+        position_calculator=mock_position_calculator,
         telemetry_interval=0.01,
         race_state_interval=0.01,
     )
@@ -161,6 +176,7 @@ def test_websocket_broadcasts_race_state(
     client: TestClient,
     mock_session_reader: MagicMock,
     mock_standings_reader: MagicMock,
+    mock_position_calculator: MagicMock,
 ) -> None:
     with client.websocket_connect("/ws") as websocket:
         websocket.receive_json()
@@ -169,5 +185,8 @@ def test_websocket_broadcasts_race_state(
     assert race_state["data"]["session"]["track_name"] == "Spa"
     assert race_state["data"]["session"]["session_type"] == "Race"
     assert race_state["data"]["standings"]["drivers"][0]["position"] == 1
+    assert race_state["data"]["player"]["overall_position"] == 1
+    assert race_state["data"]["player"]["class_position"] == 1
     mock_session_reader.read.assert_called()
     mock_standings_reader.read_snapshot.assert_called()
+    mock_position_calculator.calculate.assert_called()

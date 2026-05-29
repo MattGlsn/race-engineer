@@ -10,6 +10,7 @@ from race_engineer.api.routes.ws import router as ws_router
 from race_engineer.api.ws import TelemetryBroadcaster, WebSocketConnectionManager
 from race_engineer.connection import SdkConnectionService
 from race_engineer.session import SessionInfoReader
+from race_engineer.position import PositionCalculator
 from race_engineer.standings import StandingsReader
 from race_engineer.telemetry import TelemetryVariableReader
 
@@ -52,6 +53,7 @@ def create_app(
             TelemetryVariableReader(sdk=sdk),
             SessionInfoReader(sdk=sdk),
             StandingsReader(sdk=sdk),
+            PositionCalculator(sdk=sdk),
         )
 
     app.state.connection_service = resolved_connection_service

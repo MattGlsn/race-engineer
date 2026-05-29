@@ -69,6 +69,32 @@ def test_missing_player_car_idx_returns_empty(mock_sdk: MagicMock) -> None:
     assert snapshot == PlayerPositionSnapshot()
 
 
+def test_read_player_class_position_multiclass(mock_sdk: MagicMock) -> None:
+    _connected_sdk(mock_sdk)
+    positions = [0] * 64
+    positions[4] = 2
+    class_positions = [0] * 64
+    class_positions[4] = 1
+    _var_map(
+        mock_sdk,
+        {
+            "PlayerCarIdx": 4,
+            "CarIdxPosition": positions,
+            "CarIdxClassPosition": class_positions,
+        },
+    )
+    calculator = PositionCalculator(sdk=mock_sdk)
+
+    snapshot = calculator.calculate()
+
+    assert snapshot == PlayerPositionSnapshot(
+        car_idx=4,
+        overall_position=2,
+        class_position=1,
+        field_size=1,
+    )
+
+
 def test_invalid_player_position_returns_none(mock_sdk: MagicMock) -> None:
     _connected_sdk(mock_sdk)
     positions = [0] * 64

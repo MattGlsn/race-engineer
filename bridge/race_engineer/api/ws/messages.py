@@ -1,6 +1,7 @@
 import time
 from typing import Any
 
+from race_engineer.position.models import PlayerPositionSnapshot
 from race_engineer.session.models import Driver, Session
 from race_engineer.standings.models import DriverStanding, StandingsSnapshot
 from race_engineer.telemetry.models import TelemetrySnapshot
@@ -21,6 +22,7 @@ def build_telemetry_message(snapshot: TelemetrySnapshot) -> dict[str, Any]:
 def build_race_state_message(
     session: Session,
     standings: StandingsSnapshot,
+    player_position: PlayerPositionSnapshot | None = None,
 ) -> dict[str, Any]:
     return {
         "type": "race_state",
@@ -28,6 +30,7 @@ def build_race_state_message(
         "data": {
             "session": _session_payload(session),
             "standings": _standings_payload(standings),
+            "player": _player_position_payload(player_position),
         },
     }
 
@@ -77,4 +80,24 @@ def _standing_payload(driver: DriverStanding) -> dict[str, Any]:
         "class_position": driver.class_position,
         "class_id": driver.class_id,
         "best_lap_time": driver.best_lap_time,
+    }
+
+
+def _player_position_payload(
+    player_position: PlayerPositionSnapshot | None,
+) -> dict[str, Any]:
+    if player_position is None:
+        return _player_position_fields(PlayerPositionSnapshot())
+
+    return _player_position_fields(player_position)
+
+
+def _player_position_fields(
+    player_position: PlayerPositionSnapshot,
+) -> dict[str, Any]:
+    return {
+        "car_idx": player_position.car_idx,
+        "overall_position": player_position.overall_position,
+        "class_position": player_position.class_position,
+        "field_size": player_position.field_size,
     }
