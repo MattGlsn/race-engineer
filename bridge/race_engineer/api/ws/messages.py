@@ -18,11 +18,14 @@ def build_transcript_message(
     *,
     role: str,
     text: str,
+    intent: str | None = None,
     conversation_id: str | None = None,
     track_name: str | None = None,
     session_type: str | None = None,
 ) -> dict[str, Any]:
     data: dict[str, Any] = {"role": role, "text": text}
+    if intent is not None:
+        data["intent"] = intent
     if conversation_id is not None:
         data["conversation_id"] = conversation_id
     if track_name is not None:

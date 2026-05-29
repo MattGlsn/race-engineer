@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from pydantic import BaseModel, Field
 
 from race_engineer.voice.engineer import EngineerVoiceService
+from race_engineer.voice.intent.router import route_intent
 from race_engineer.voice.pipeline import VoicePipeline
 from race_engineer.voice.stt.errors import VoiceErrorCode
 from race_engineer.voice.stt.result import VoicePipelineResult
@@ -14,6 +15,10 @@ router = APIRouter(tags=["voice"])
 
 
 class SpeakRequest(BaseModel):
+    text: str = Field(..., min_length=1)
+
+
+class RouteRequest(BaseModel):
     text: str = Field(..., min_length=1)
 
 
@@ -63,6 +68,16 @@ async def speak_voice(
 ) -> dict[str, Any]:
     result = service.speak(body.text)
     return _speak_response_from_result(result)
+
+
+@router.post("/voice/route")
+async def route_voice(body: RouteRequest) -> dict[str, Any]:
+    routed = route_intent(body.text)
+    return {
+        "success": True,
+        "text": routed.text,
+        "intent": routed.intent.value,
+    }
 
 
 def _response_from_result(
