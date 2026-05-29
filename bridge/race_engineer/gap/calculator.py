@@ -2,8 +2,12 @@ from typing import Any
 
 from race_engineer.gap import variables as var
 from race_engineer.gap.models import GapAheadSnapshot
+from race_engineer.telemetry.variables import SPEED
 from race_engineer.position.normalize import MAX_CARS, normalize_car_idx, normalize_positive_int
 from race_engineer.sdk.wrapper import IrSdkWrapper
+
+MIN_SPEED_MPS = 0.1
+GAP_SECONDS_PRECISION = 2
 
 
 class GapAheadCalculator:
@@ -27,7 +31,14 @@ class GapAheadCalculator:
             if target_car_idx is None:
                 return GapAheadSnapshot()
 
-            return GapAheadSnapshot(target_car_idx=target_car_idx)
+            distance_meters = self._read_car_dist_ahead()
+            gap_seconds = self._calculate_gap_seconds(distance_meters)
+
+            return GapAheadSnapshot(
+                target_car_idx=target_car_idx,
+                gap_seconds=gap_seconds,
+                distance_meters=distance_meters,
+            )
         finally:
             self._sdk.unfreeze_var_buffer_latest()
 
@@ -108,6 +119,41 @@ class GapAheadCalculator:
             return None
 
         return laps + lap_fraction
+
+    def _read_car_dist_ahead(self) -> float | None:
+        value = self._read_raw(var.CAR_DIST_AHEAD)
+        if value is None:
+            return None
+
+        try:
+            distance = float(value)
+        except (TypeError, ValueError):
+            return None
+
+        return distance if distance > 0 else None
+
+    def _calculate_gap_seconds(self, distance_meters: float | None) -> float | None:
+        if distance_meters is None:
+            return None
+
+        speed = self._read_speed_mps()
+        if speed is None:
+            return None
+
+        gap_seconds = distance_meters / speed
+        return round(gap_seconds, GAP_SECONDS_PRECISION)
+
+    def _read_speed_mps(self) -> float | None:
+        value = self._read_raw(SPEED)
+        if value is None:
+            return None
+
+        try:
+            speed = float(value)
+        except (TypeError, ValueError):
+            return None
+
+        return speed if speed >= MIN_SPEED_MPS else None
 
     def _read_int_array(self, name: str) -> list[int] | None:
         value = self._read_raw(name)

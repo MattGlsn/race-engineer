@@ -129,3 +129,65 @@ def test_classification_fallback_when_track_data_missing(mock_sdk: MagicMock) ->
     snapshot = calculator.calculate()
 
     assert snapshot == GapAheadSnapshot(target_car_idx=8)
+
+
+def test_calculate_gap_seconds_from_distance_and_speed(mock_sdk: MagicMock) -> None:
+    _connected_sdk(mock_sdk)
+    positions = [0] * 64
+    positions[4] = 3
+    positions[7] = 2
+    lap_completed = [0] * 64
+    lap_completed[4] = 10
+    lap_completed[7] = 10
+    lap_dist_pct = [0.0] * 64
+    lap_dist_pct[4] = 0.40
+    lap_dist_pct[7] = 0.55
+    _var_map(
+        mock_sdk,
+        {
+            "PlayerCarIdx": 4,
+            "CarIdxPosition": positions,
+            "CarIdxLapCompleted": lap_completed,
+            "CarIdxLapDistPct": lap_dist_pct,
+            "CarDistAhead": 25.0,
+            "Speed": 50.0,
+        },
+    )
+    calculator = GapAheadCalculator(sdk=mock_sdk)
+
+    snapshot = calculator.calculate()
+
+    assert snapshot == GapAheadSnapshot(
+        target_car_idx=7,
+        gap_seconds=0.5,
+        distance_meters=25.0,
+    )
+
+
+def test_zero_speed_returns_no_gap_seconds(mock_sdk: MagicMock) -> None:
+    _connected_sdk(mock_sdk)
+    positions = [0] * 64
+    positions[4] = 2
+    positions[7] = 1
+    lap_completed = [0] * 64
+    lap_completed[4] = 10
+    lap_completed[7] = 10
+    lap_dist_pct = [0.0] * 64
+    lap_dist_pct[4] = 0.40
+    lap_dist_pct[7] = 0.55
+    _var_map(
+        mock_sdk,
+        {
+            "PlayerCarIdx": 4,
+            "CarIdxPosition": positions,
+            "CarIdxLapCompleted": lap_completed,
+            "CarIdxLapDistPct": lap_dist_pct,
+            "CarDistAhead": 10.0,
+            "Speed": 0.0,
+        },
+    )
+    calculator = GapAheadCalculator(sdk=mock_sdk)
+
+    snapshot = calculator.calculate()
+
+    assert snapshot == GapAheadSnapshot(target_car_idx=7, distance_meters=10.0)
