@@ -11,6 +11,10 @@ from race_engineer.api.routes.health import router as health_router
 from race_engineer.api.routes.voice import router as voice_router
 from race_engineer.api.routes.ws import router as ws_router
 from race_engineer.api.ws import TelemetryBroadcaster, WebSocketConnectionManager
+from race_engineer.ai.llm.client import OpenAiChatClient
+from race_engineer.ai.llm.config import load_openai_llm_config
+from race_engineer.ai.service import EngineerAiService
+from race_engineer.context.aggregator import ContextAggregator
 from race_engineer.connection import SdkConnectionService
 from race_engineer.session import SessionInfoReader
 from race_engineer.position import PositionCalculator
@@ -58,6 +62,8 @@ def create_app(
     broadcaster: TelemetryBroadcaster | None = None,
     voice_pipeline: VoicePipeline | None = None,
     engineer_voice: EngineerVoiceService | None = None,
+    engineer_ai: EngineerAiService | None = None,
+    context_aggregator: ContextAggregator | None = None,
     hotkey_service: VoiceHotkeyService | None = None,
 ) -> FastAPI:
     app = FastAPI(
@@ -89,12 +95,19 @@ def create_app(
         )
 
     resolved_voice_pipeline = voice_pipeline or _build_voice_pipeline()
+    resolved_context_aggregator = context_aggregator or ContextAggregator(
+        resolved_connection_service,
+        fuel_tracker=fuel_tracker,
+        fuel_repository=fuel_repository,
+    )
 
     app.state.connection_service = resolved_connection_service
     app.state.ws_manager = resolved_ws_manager
     app.state.broadcaster = resolved_broadcaster
     app.state.voice_pipeline = resolved_voice_pipeline
     app.state.engineer_voice = engineer_voice or _build_engineer_voice()
+    app.state.engineer_ai = engineer_ai or _build_engineer_ai()
+    app.state.context_aggregator = resolved_context_aggregator
     app.state.hotkey_service = hotkey_service or _build_hotkey_service(
         resolved_voice_pipeline,
         resolved_ws_manager,
@@ -136,6 +149,13 @@ def _build_engineer_voice() -> EngineerVoiceService | None:
         ElevenLabsTtsClient(config),
         volume_config=load_voice_volume_config(),
     )
+
+
+def _build_engineer_ai() -> EngineerAiService | None:
+    config = load_openai_llm_config()
+    if config is None:
+        return None
+    return EngineerAiService(OpenAiChatClient(config))
 
 
 load_env()
