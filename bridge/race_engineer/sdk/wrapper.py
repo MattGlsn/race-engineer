@@ -65,3 +65,32 @@ class IrSdkWrapper:
             return list(self._sdk.var_headers_names)
         except Exception:
             return []
+
+    def get_session_info(self, key: str) -> Any | None:
+        """Return a parsed session info section from the SDK."""
+        if not self.is_connected:
+            return None
+
+        try:
+            return self._sdk[key]
+        except (KeyError, TypeError):
+            return None
+
+    def get_session_info_yaml(self) -> str | None:
+        """Return the raw session info YAML string from shared memory."""
+        if not self.is_connected:
+            return None
+
+        try:
+            header = getattr(self._sdk, "_header", None)
+            shared_mem = getattr(self._sdk, "_shared_mem", None)
+            if header is None or shared_mem is None:
+                return None
+
+            raw = shared_mem[
+                header.session_info_offset : header.session_info_offset
+                + header.session_info_len
+            ]
+            return raw.rstrip(b"\x00").decode("cp1252")
+        except Exception:
+            return None
