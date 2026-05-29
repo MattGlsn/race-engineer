@@ -4,7 +4,10 @@ from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from pydantic import BaseModel, Field
 
 from race_engineer.ai.models import EngineerAskResult
+from race_engineer.ai.prompt.models import PersonalityMode
 from race_engineer.ai.service import EngineerAiService
+from race_engineer.api.routes.settings import get_personality_settings
+from race_engineer.settings.personality import PersonalitySettings
 from race_engineer.context.aggregator import ContextAggregator
 from race_engineer.voice.engineer import EngineerVoiceService
 from race_engineer.voice.intent.router import route_intent
@@ -28,6 +31,7 @@ class RouteRequest(BaseModel):
 class AskRequest(BaseModel):
     text: str = Field(..., min_length=1)
     intent: str | None = None
+    personality: PersonalityMode | None = None
 
 
 def get_voice_pipeline(request: Request) -> VoicePipeline:
@@ -117,9 +121,19 @@ async def ask_engineer(
     body: AskRequest,
     service: EngineerAiDep,
     context_aggregator: ContextAggregatorDep,
+    personality_settings: Annotated[
+        PersonalitySettings,
+        Depends(get_personality_settings),
+    ],
 ) -> dict[str, Any]:
     context = context_aggregator.build()
-    result = service.ask(body.text, context, intent=body.intent)
+    personality = body.personality or personality_settings.mode
+    result = service.ask(
+        body.text,
+        context,
+        intent=body.intent,
+        personality=personality,
+    )
     return _ask_response_from_result(result)
 
 

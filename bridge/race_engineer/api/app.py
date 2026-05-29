@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from race_engineer.api.config import get_cors_origins, load_env
 from race_engineer.api.routes.health import router as health_router
+from race_engineer.api.routes.settings import router as settings_router
 from race_engineer.api.routes.voice import router as voice_router
 from race_engineer.api.routes.ws import router as ws_router
 from race_engineer.api.ws import TelemetryBroadcaster, WebSocketConnectionManager
@@ -30,8 +31,11 @@ from race_engineer.voice.stt.config import load_elevenlabs_stt_config
 from race_engineer.voice.tts.client import ElevenLabsTtsClient
 from race_engineer.voice.tts.config import load_elevenlabs_tts_config
 from race_engineer.voice.audio.volume import load_voice_volume_config
+from race_engineer.voice.conversation.orchestrator import VoiceConversationOrchestrator
 from race_engineer.voice.hotkey.errors import HotkeyRegistrationError
 from race_engineer.voice.hotkey.service import VoiceHotkeyService
+from race_engineer.settings.personality import PersonalitySettings
+from race_engineer.settings.volume import VoiceVolumeSettings
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +69,8 @@ def create_app(
     engineer_ai: EngineerAiService | None = None,
     context_aggregator: ContextAggregator | None = None,
     hotkey_service: VoiceHotkeyService | None = None,
+    personality_settings: PersonalitySettings | None = None,
+    voice_volume_settings: VoiceVolumeSettings | None = None,
 ) -> FastAPI:
     app = FastAPI(
         title="Race Engineer Bridge API",
@@ -100,17 +106,31 @@ def create_app(
         fuel_tracker=fuel_tracker,
         fuel_repository=fuel_repository,
     )
+    resolved_voice_volume_settings = voice_volume_settings or VoiceVolumeSettings(
+        load_voice_volume_config().volume
+    )
+    resolved_engineer_voice = engineer_voice or _build_engineer_voice(
+        resolved_voice_volume_settings
+    )
+    resolved_engineer_ai = engineer_ai or _build_engineer_ai()
+    resolved_personality_settings = personality_settings or PersonalitySettings()
 
     app.state.connection_service = resolved_connection_service
     app.state.ws_manager = resolved_ws_manager
     app.state.broadcaster = resolved_broadcaster
     app.state.voice_pipeline = resolved_voice_pipeline
-    app.state.engineer_voice = engineer_voice or _build_engineer_voice()
-    app.state.engineer_ai = engineer_ai or _build_engineer_ai()
+    app.state.engineer_voice = resolved_engineer_voice
+    app.state.engineer_ai = resolved_engineer_ai
     app.state.context_aggregator = resolved_context_aggregator
+    app.state.personality_settings = resolved_personality_settings
+    app.state.voice_volume_settings = resolved_voice_volume_settings
     app.state.hotkey_service = hotkey_service or _build_hotkey_service(
         resolved_voice_pipeline,
         resolved_ws_manager,
+        resolved_context_aggregator,
+        resolved_engineer_ai,
+        resolved_engineer_voice,
+        resolved_personality_settings,
     )
     app.add_middleware(
         CORSMiddleware,
@@ -120,6 +140,7 @@ def create_app(
         allow_headers=["*"],
     )
     app.include_router(health_router)
+    app.include_router(settings_router)
     app.include_router(voice_router)
     app.include_router(ws_router)
     return app
@@ -135,19 +156,32 @@ def _build_voice_pipeline() -> VoicePipeline | None:
 def _build_hotkey_service(
     voice_pipeline: VoicePipeline | None,
     ws_manager: WebSocketConnectionManager,
+    context_aggregator: ContextAggregator,
+    engineer_ai: EngineerAiService | None,
+    engineer_voice: EngineerVoiceService | None,
+    personality_settings: PersonalitySettings,
 ) -> VoiceHotkeyService | None:
     if voice_pipeline is None:
         return None
-    return VoiceHotkeyService(voice_pipeline, ws_manager)
+    orchestrator = VoiceConversationOrchestrator(
+        ws_manager,
+        context_aggregator,
+        engineer_ai,
+        engineer_voice,
+        personality_settings=personality_settings,
+    )
+    return VoiceHotkeyService(voice_pipeline, orchestrator=orchestrator)
 
 
-def _build_engineer_voice() -> EngineerVoiceService | None:
+def _build_engineer_voice(
+    voice_volume_settings: VoiceVolumeSettings,
+) -> EngineerVoiceService | None:
     config = load_elevenlabs_tts_config()
     if config is None:
         return None
     return EngineerVoiceService(
         ElevenLabsTtsClient(config),
-        volume_config=load_voice_volume_config(),
+        volume_settings=voice_volume_settings,
     )
 
 

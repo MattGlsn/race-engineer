@@ -3,7 +3,9 @@ import { useEffect, useRef, useState } from "react";
 import type { BridgeMessage, ConnectionState, RaceStateData } from "../types/bridge";
 import type { TranscriptMessageData } from "../types/transcript";
 
-const DEFAULT_WS_URL = "ws://127.0.0.1:8000/ws";
+import { DEFAULT_BRIDGE_WS_URL } from "../utils/bridgeApi";
+
+const DEFAULT_WS_URL = DEFAULT_BRIDGE_WS_URL;
 const RECONNECT_MS = 2000;
 
 export type BridgeSocketState = {

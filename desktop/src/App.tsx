@@ -8,6 +8,8 @@ import { GapWidget } from "./components/widgets/GapWidget";
 import { LapTimingWidget } from "./components/widgets/LapTimingWidget";
 import { PositionWidget } from "./components/widgets/PositionWidget";
 import { useBridgeWebSocket } from "./hooks/useBridgeWebSocket";
+import { usePersonalitySettings } from "./hooks/usePersonalitySettings";
+import { useVoiceVolume } from "./hooks/useVoiceVolume";
 import { useTranscriptStore } from "./hooks/useTranscriptStore";
 import { isRaceDataLive } from "./utils/bridge";
 
@@ -15,11 +17,22 @@ export default function App() {
   const [activeView, setActiveView] = useState<AppView>("dashboard");
   const transcriptStore = useTranscriptStore();
   const bridge = useBridgeWebSocket({ onTranscript: transcriptStore.handleIncoming });
+  const personality = usePersonalitySettings({
+    bridgeConnected: bridge.bridgeConnected,
+  });
+  const voiceVolume = useVoiceVolume({ bridgeConnected: bridge.bridgeConnected });
   const dataLive = isRaceDataLive(bridge);
   const raceState = dataLive ? bridge.raceState : null;
 
   return (
-    <AppShell bridge={bridge} activeView={activeView} onNavigate={setActiveView}>
+    <AppShell
+      bridge={bridge}
+      activeView={activeView}
+      onNavigate={setActiveView}
+      personalityMode={personality.mode}
+      onSelectPersonalityMode={personality.selectMode}
+      personalitySyncError={personality.syncError}
+    >
       {activeView === "dashboard" ? (
         <div className="dashboard-grid">
           <div className="dashboard-grid__slot">
@@ -41,6 +54,10 @@ export default function App() {
           selectedConversation={transcriptStore.selectedConversation}
           selectedConversationId={transcriptStore.selectedConversationId}
           onSelectConversation={transcriptStore.selectConversation}
+          voiceVolume={voiceVolume.volume}
+          onChangeVoiceVolume={voiceVolume.setVolumeLevel}
+          voiceVolumeSyncError={voiceVolume.syncError}
+          bridgeConnected={bridge.bridgeConnected}
         />
       )}
     </AppShell>

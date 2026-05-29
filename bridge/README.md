@@ -37,16 +37,39 @@ uvicorn race_engineer.api.app:app --reload
 - Intent router: `POST http://127.0.0.1:8000/voice/route` with JSON `{"text":"..."}` → `intent` (`coaching`, `fuel`, `position`, `gap`, `lap`, or `unknown`)
 - Engineer TTS: `POST http://127.0.0.1:8000/voice/speak` with JSON `{"text":"..."}` (requires `ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID`)
 - Engineer AI: `POST http://127.0.0.1:8000/voice/ask` with JSON `{"text":"...", "intent":"fuel"}` (optional intent; requires `OPENAI_API_KEY`)
+- Engineer tone: `GET` / `PUT http://127.0.0.1:8000/settings/personality` with JSON `{"mode":"calm"|"direct"|"intense"}` (used by push-to-talk and `/voice/ask`)
+- Engineer volume: `GET` / `PUT http://127.0.0.1:8000/settings/volume` with JSON `{"volume":0.0-2.0}` (TTS playback gain on the bridge machine)
 - Interactive docs: `http://127.0.0.1:8000/docs`
 
 Optional environment:
 
 - `CORS_ORIGINS` (comma-separated) to override default localhost origins
 - `ELEVENLABS_STT_MODEL`, `ELEVENLABS_TTS_MODEL`, `ELEVENLABS_TTS_OUTPUT_FORMAT` (default `pcm_16000`)
-- `VOICE_OUTPUT_VOLUME` (0.0–1.0, default `1.0`)
-- `VOICE_HOTKEY` (default `ctrl+shift+space`) — global push-to-talk while the bridge is running; hold to record, release to transcribe and push a `transcript` message to WebSocket clients
-- `OPENAI_API_KEY` — enables engineer AI replies via `/voice/ask`
+- `VOICE_OUTPUT_VOLUME` (0.0–2.0, default `1.0`; values above `1.0` boost TTS over engine noise; also adjustable via desktop or `GET`/`PUT /settings/volume`)
+- `VOICE_HOTKEY` (default `ctrl+shift+space`) — global push-to-talk while the bridge is running (see **Push-to-talk conversation** below)
+- `OPENAI_API_KEY` — enables engineer AI replies via `/voice/ask` and the PTT conversation loop
 - `OPENAI_MODEL` (default `gpt-4o-mini`), `OPENAI_BASE_URL`, `LLM_TIMEOUT_SECONDS` (default `8.0`), `LLM_MAX_COMPLETION_TOKENS` (default `150`)
+
+## Push-to-talk conversation
+
+When the bridge is running with `ELEVENLABS_API_KEY` configured, hold `VOICE_HOTKEY` to record from the bridge machine's microphone. On release, the bridge runs the full conversation loop:
+
+1. ElevenLabs STT transcribes the recording
+2. Driver transcript is broadcast to WebSocket clients (`role: "driver"`)
+3. Live race context is built from iRacing SDK data
+4. OpenAI generates a short engineer reply (requires `OPENAI_API_KEY`)
+5. Engineer reply is broadcast to WebSocket clients (`role: "engineer"`)
+6. ElevenLabs TTS plays the reply on the bridge machine's speakers (requires `ELEVENLABS_VOICE_ID`)
+
+Required environment for the full loop:
+
+- `ELEVENLABS_API_KEY` — STT and TTS
+- `ELEVENLABS_VOICE_ID` — TTS playback
+- `OPENAI_API_KEY` — LLM replies
+
+If `OPENAI_API_KEY` or `ELEVENLABS_VOICE_ID` is missing after a successful transcript, the driver message is still broadcast and an engineer error message is sent to WebSocket clients (no audio playback).
+
+Individual HTTP endpoints (`/voice/transcribe`, `/voice/ask`, `/voice/speak`) remain available for manual or scripted use.
 
 ## Usage
 

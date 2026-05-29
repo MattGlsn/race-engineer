@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from race_engineer.voice.audio.volume import (
+    MAX_VOICE_OUTPUT_VOLUME,
     VoiceVolumeConfig,
     apply_volume_to_pcm,
     load_voice_volume_config,
@@ -30,9 +31,18 @@ def test_apply_volume_to_pcm_empty_buffer() -> None:
     assert apply_volume_to_pcm(b"", 0.5) == b""
 
 
+def test_apply_volume_to_pcm_boosts_above_unity() -> None:
+    pcm = np.array([1000, -1000], dtype=np.int16).tobytes()
+
+    result = apply_volume_to_pcm(pcm, 1.5)
+    samples = np.frombuffer(result, dtype=np.int16)
+
+    assert samples.tolist() == [1500, -1500]
+
+
 def test_voice_volume_config_rejects_out_of_range() -> None:
     with pytest.raises(ValueError, match="volume must be between"):
-        VoiceVolumeConfig(volume=1.5)
+        VoiceVolumeConfig(volume=MAX_VOICE_OUTPUT_VOLUME + 0.1)
 
 
 def test_load_voice_volume_config_defaults_to_full_scale() -> None:
