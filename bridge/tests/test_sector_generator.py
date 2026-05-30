@@ -106,3 +106,59 @@ def test_generate_sectors_constant_speed_is_repeatable() -> None:
 
     assert first == second
     assert all(sector.avg_speed == pytest.approx(150.0) for sector in first.sectors)
+
+
+def test_generate_sectors_stores_timing_per_sector() -> None:
+    result = generate_sectors(_lap_trace())
+
+    for sector in result.sectors:
+        assert sector.duration_seconds is not None
+        assert sector.duration_seconds >= 0
+
+
+def test_generate_sectors_timing_sums_to_lap_duration() -> None:
+    samples = tuple(
+        TraceSample(
+            timestamp=dist * 100.0,
+            lap_dist_pct=dist,
+            speed=150.0,
+            fuel=30.0,
+            gear=3,
+            throttle=0.8,
+            brake=0.0,
+            steering=0.0,
+            rpm=6000.0,
+        )
+        for dist in (0.0, 0.25, 0.5, 0.75, 1.0)
+    )
+    lap_trace = LapTrace(lap=1, samples=samples)
+    result = generate_sectors(lap_trace)
+
+    total_duration = sum(sector.duration_seconds or 0.0 for sector in result.sectors)
+    assert total_duration == pytest.approx(100.0)
+
+
+def test_generate_sectors_timing_is_repeatable() -> None:
+    samples = tuple(
+        TraceSample(
+            timestamp=dist * 100.0,
+            lap_dist_pct=dist,
+            speed=150.0,
+            fuel=30.0,
+            gear=3,
+            throttle=0.8,
+            brake=0.0,
+            steering=0.0,
+            rpm=6000.0,
+        )
+        for dist in (0.0, 0.25, 0.5, 0.75, 1.0)
+    )
+    lap_trace = LapTrace(lap=1, samples=samples)
+
+    first = generate_sectors(lap_trace)
+    second = generate_sectors(lap_trace)
+
+    assert first == second
+    assert all(
+        sector.duration_seconds == pytest.approx(2.0) for sector in first.sectors
+    )

@@ -18,20 +18,35 @@ def generate_sectors(
     samples = _sorted_samples(lap_trace.samples)
     sector_width = 1.0 / sector_count
     sectors = tuple(
-        Sector(
+        _build_sector(
+            samples,
             index=index,
-            start_dist_pct=index * sector_width,
-            end_dist_pct=(index + 1) * sector_width,
-            avg_speed=_sector_avg_speed(
-                samples,
-                index * sector_width,
-                (index + 1) * sector_width,
-                is_last=index == sector_count - 1,
-            ),
+            start=index * sector_width,
+            end=(index + 1) * sector_width,
+            is_last=index == sector_count - 1,
         )
         for index in range(sector_count)
     )
     return LapSectors(lap=lap_trace.lap, sectors=sectors)
+
+
+def _build_sector(
+    samples: tuple[TraceSample, ...],
+    *,
+    index: int,
+    start: float,
+    end: float,
+    is_last: bool,
+) -> Sector:
+    start_ts = _interpolate_timestamp(samples, start)
+    end_ts = _interpolate_timestamp(samples, end)
+    return Sector(
+        index=index,
+        start_dist_pct=start,
+        end_dist_pct=end,
+        avg_speed=_sector_avg_speed(samples, start, end, is_last=is_last),
+        duration_seconds=max(end_ts - start_ts, 0.0),
+    )
 
 
 def _sorted_samples(samples: tuple[TraceSample, ...]) -> tuple[TraceSample, ...]:
@@ -66,6 +81,13 @@ def _interpolate_field(
 
 def _interpolate_speed(samples: tuple[TraceSample, ...], dist_pct: float) -> float:
     return _interpolate_field(samples, dist_pct, "speed")
+
+
+def _interpolate_timestamp(
+    samples: tuple[TraceSample, ...],
+    dist_pct: float,
+) -> float:
+    return _interpolate_field(samples, dist_pct, "timestamp")
 
 
 def _sector_avg_speed(
