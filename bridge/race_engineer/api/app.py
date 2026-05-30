@@ -16,6 +16,7 @@ from race_engineer.ai.llm.client import OpenAiChatClient
 from race_engineer.ai.llm.config import load_openai_llm_config
 from race_engineer.ai.service import EngineerAiService
 from race_engineer.context.aggregator import ContextAggregator
+from race_engineer.coaching.trace import TraceRecorder
 from race_engineer.connection import SdkConnectionService
 from race_engineer.session import SessionInfoReader
 from race_engineer.position import PositionCalculator
@@ -23,6 +24,7 @@ from race_engineer.standings import StandingsReader
 from race_engineer.fuel import FuelConsumptionTracker
 from race_engineer.storage.database import connect
 from race_engineer.storage.fuel_repository import FuelLapRepository
+from race_engineer.storage.trace_repository import TraceRepository
 from race_engineer.telemetry import TelemetryVariableReader
 from race_engineer.voice.engineer import EngineerVoiceService
 from race_engineer.voice.pipeline import VoicePipeline
@@ -90,7 +92,9 @@ def create_app(
     sdk = resolved_connection_service.sdk
     db_connection = connect()
     fuel_repository = FuelLapRepository(db_connection)
+    trace_repository = TraceRepository(db_connection)
     fuel_tracker = FuelConsumptionTracker(repository=fuel_repository)
+    trace_recorder = TraceRecorder(repository=trace_repository)
     resolved_broadcaster = broadcaster
     if resolved_broadcaster is None:
         resolved_broadcaster = TelemetryBroadcaster(
@@ -101,6 +105,7 @@ def create_app(
             StandingsReader(sdk=sdk),
             PositionCalculator(sdk=sdk),
             fuel_tracker=fuel_tracker,
+            trace_recorder=trace_recorder,
         )
 
     resolved_voice_pipeline = voice_pipeline or _build_voice_pipeline()
