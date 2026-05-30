@@ -1,0 +1,3 @@
+PLAYER_CAR_MY_INCIDENT_COUNT = "PlayerCarMyIncidentCount"
+
+__all__ = ["PLAYER_CAR_MY_INCIDENT_COUNT"]
