@@ -11,6 +11,10 @@ from race_engineer.api.ws.messages import (
 )
 from race_engineer.proactive.cooldown import CooldownManager
 from race_engineer.proactive.incident import IncidentReader
+from race_engineer.proactive.suppression import (
+    SpeechSuppressionManager,
+    WorkloadMonitor,
+)
 from race_engineer.proactive.lap import PlayerBestLapReader
 from race_engineer.proactive.triggers import TriggerEngine, TriggerSnapshot
 from race_engineer.coaching.trace import TraceRecorder
@@ -27,6 +31,7 @@ from race_engineer.gap import GapAheadCalculator, GapBehindCalculator
 from race_engineer.position import PositionCalculator
 from race_engineer.standings import StandingsReader
 from race_engineer.telemetry import TelemetryVariableReader
+from race_engineer.voice.engineer import EngineerVoiceService
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +61,9 @@ class TelemetryBroadcaster:
         incident_reader: IncidentReader | None = None,
         trigger_engine: TriggerEngine | None = None,
         cooldown_manager: CooldownManager | None = None,
+        workload_monitor: WorkloadMonitor | None = None,
+        suppression_manager: SpeechSuppressionManager | None = None,
+        engineer_voice: EngineerVoiceService | None = None,
         telemetry_interval: float = TELEMETRY_INTERVAL_SECONDS,
         race_state_interval: float | None = RACE_STATE_INTERVAL_SECONDS,
     ) -> None:
@@ -125,6 +133,14 @@ class TelemetryBroadcaster:
         self._cooldown_manager = (
             cooldown_manager if cooldown_manager is not None else CooldownManager()
         )
+        resolved_workload = workload_monitor or WorkloadMonitor()
+        self._workload_monitor = resolved_workload
+        self._suppression_manager = (
+            suppression_manager
+            if suppression_manager is not None
+            else SpeechSuppressionManager(resolved_workload)
+        )
+        self._engineer_voice = engineer_voice
         self._telemetry_interval = telemetry_interval
         self._race_state_interval = race_state_interval
         self._task: asyncio.Task[None] | None = None
@@ -159,6 +175,10 @@ class TelemetryBroadcaster:
                 await self._sync_connection_state()
 
                 snapshot = self._telemetry_reader.read_snapshot()
+                telemetry_now = time.monotonic()
+                self._workload_monitor.observe(snapshot, now=telemetry_now)
+                if self._engineer_voice is not None:
+                    await asyncio.to_thread(self._engineer_voice.flush_pending_speech)
                 laps_completed = self._lap_reader.read_laps_completed()
                 fuel_snapshot = self._fuel_tracker.update(
                     snapshot.fuel,
@@ -180,6 +200,8 @@ class TelemetryBroadcaster:
                             self._fuel_tracker.begin_session(session_key)
                             self._trace_recorder.begin_session(session_key)
                             self._cooldown_manager.begin_session(session_key)
+                            self._workload_monitor.reset()
+                            self._suppression_manager.reset()
                             fuel_snapshot = self._fuel_tracker.update(
                                 snapshot.fuel,
                                 laps_completed,
@@ -215,8 +237,18 @@ class TelemetryBroadcaster:
                         for trigger_event in self._cooldown_manager.filter(
                             trigger_events,
                         ):
+                            for released in self._suppression_manager.accept_trigger(
+                                trigger_event,
+                                now=now,
+                            ):
+                                await self._manager.broadcast(
+                                    build_proactive_trigger_message(released),
+                                )
+                        for released in self._suppression_manager.drain_triggers(
+                            now=now,
+                        ):
                             await self._manager.broadcast(
-                                build_proactive_trigger_message(trigger_event),
+                                build_proactive_trigger_message(released),
                             )
 
                 await asyncio.sleep(self._telemetry_interval)
