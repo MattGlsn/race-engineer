@@ -68,3 +68,39 @@ def compare_to_previous_lap(current: LapTrace, previous: LapTrace) -> LapDelta:
         generate_sectors(previous),
         reference_kind="previous",
     )
+
+
+def find_best_lap(traces: tuple[LapTrace, ...]) -> LapTrace | None:
+    """Return the lap with the shortest total sector duration."""
+    best_trace: LapTrace | None = None
+    best_duration: float | None = None
+    for trace in traces:
+        sectors = generate_sectors(trace)
+        total_duration = sum(
+            sector.duration_seconds or 0.0 for sector in sectors.sectors
+        )
+        if best_duration is None or total_duration < best_duration:
+            best_duration = total_duration
+            best_trace = trace
+
+    return best_trace
+
+
+def compare_to_best_lap(
+    current: LapTrace,
+    candidates: tuple[LapTrace, ...],
+) -> LapDelta | None:
+    """Compare the current lap against the fastest lap in candidates."""
+    reference_traces = tuple(trace for trace in candidates if trace.lap != current.lap)
+    if not reference_traces:
+        return None
+
+    best = find_best_lap(reference_traces)
+    if best is None:
+        return None
+
+    return compute_lap_delta(
+        generate_sectors(current),
+        generate_sectors(best),
+        reference_kind="best",
+    )

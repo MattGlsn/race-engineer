@@ -1,6 +1,12 @@
 import pytest
 
-from race_engineer.coaching.delta import compute_lap_delta, compare_to_previous_lap, top_losses
+from race_engineer.coaching.delta import (
+    compare_to_best_lap,
+    compare_to_previous_lap,
+    compute_lap_delta,
+    find_best_lap,
+    top_losses,
+)
 from race_engineer.coaching.sectors import generate_sectors
 from race_engineer.coaching.trace.models import LapTrace, TraceSample
 
@@ -117,3 +123,34 @@ def test_compare_to_previous_lap_rejects_non_consecutive_laps() -> None:
             _linear_lap_trace(lap=3),
             _linear_lap_trace(lap=1),
         )
+
+
+def test_find_best_lap_selects_fastest_trace() -> None:
+    lap_one = _linear_lap_trace(lap=1, duration=100.0)
+    lap_two = _linear_lap_trace(lap=2, duration=90.0)
+    lap_three = _slower_middle_lap_trace(lap=3)
+
+    best = find_best_lap((lap_one, lap_two, lap_three))
+
+    assert best is not None
+    assert best.lap == 2
+
+
+def test_compare_to_best_lap_uses_fastest_reference() -> None:
+    lap_one = _linear_lap_trace(lap=1, duration=100.0)
+    lap_two = _linear_lap_trace(lap=2, duration=90.0)
+    current = _slower_middle_lap_trace(lap=3)
+
+    result = compare_to_best_lap(current, (lap_one, lap_two, current))
+
+    assert result is not None
+    assert result.reference_kind == "best"
+    assert result.reference_lap == 2
+    assert result.current_lap == 3
+
+
+def test_compare_to_best_lap_returns_none_without_reference_laps() -> None:
+    current = _linear_lap_trace(lap=1)
+
+    assert compare_to_best_lap(current, (current,)) is None
+    assert compare_to_best_lap(current, ()) is None
