@@ -7,6 +7,7 @@ from race_engineer.gap.models import GapAheadSnapshot, GapBehindSnapshot
 from race_engineer.position.models import PlayerPositionSnapshot
 from race_engineer.session.models import Driver, Session
 from race_engineer.standings.models import DriverStanding, StandingsSnapshot
+from race_engineer.proactive.triggers.models import TriggerEvent
 from race_engineer.telemetry.models import TelemetrySnapshot
 
 
@@ -44,6 +45,17 @@ def build_telemetry_message(snapshot: TelemetrySnapshot) -> dict[str, Any]:
         "type": "telemetry",
         "ts": time.time(),
         "data": _telemetry_payload(snapshot),
+    }
+
+
+def build_proactive_trigger_message(event: TriggerEvent) -> dict[str, Any]:
+    return {
+        "type": "proactive_trigger",
+        "ts": time.time(),
+        "data": {
+            "trigger": event.type.value,
+            "payload": event.payload,
+        },
     }
 
 
