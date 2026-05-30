@@ -52,3 +52,57 @@ def test_generate_sectors_cover_full_lap_distance() -> None:
 def test_generate_sectors_rejects_empty_trace() -> None:
     with pytest.raises(ValueError, match="no samples"):
         generate_sectors(LapTrace(lap=1, samples=()))
+
+
+def test_generate_sectors_stores_average_speed_per_sector() -> None:
+    result = generate_sectors(_lap_trace())
+
+    for sector in result.sectors:
+        assert sector.avg_speed is not None
+        assert sector.avg_speed > 0
+
+
+def test_generate_sectors_speed_matches_samples_in_sector() -> None:
+    samples = tuple(
+        TraceSample(
+            timestamp=float(index),
+            lap_dist_pct=index / 50.0,
+            speed=100.0 + index,
+            fuel=30.0,
+            gear=3,
+            throttle=0.8,
+            brake=0.0,
+            steering=0.0,
+            rpm=6000.0,
+        )
+        for index in range(51)
+    )
+    lap_trace = LapTrace(lap=1, samples=samples)
+    result = generate_sectors(lap_trace)
+
+    first_sector = result.sectors[0]
+    assert first_sector.avg_speed == pytest.approx(100.0)
+
+
+def test_generate_sectors_constant_speed_is_repeatable() -> None:
+    samples = tuple(
+        TraceSample(
+            timestamp=float(index),
+            lap_dist_pct=index / 99.0,
+            speed=150.0,
+            fuel=30.0,
+            gear=3,
+            throttle=0.8,
+            brake=0.0,
+            steering=0.0,
+            rpm=6000.0,
+        )
+        for index in range(100)
+    )
+    lap_trace = LapTrace(lap=1, samples=samples)
+
+    first = generate_sectors(lap_trace)
+    second = generate_sectors(lap_trace)
+
+    assert first == second
+    assert all(sector.avg_speed == pytest.approx(150.0) for sector in first.sectors)
