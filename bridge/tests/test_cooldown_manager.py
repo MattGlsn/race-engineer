@@ -95,3 +95,56 @@ def test_filter_allows_repeat_trigger_after_type_cooldown() -> None:
     allowed = manager.filter((_event(TriggerType.FUEL),), now=160.0)
 
     assert allowed == (_event(TriggerType.FUEL),)
+
+
+def test_filter_prefers_incident_over_fastest_lap_in_burst() -> None:
+    manager = CooldownManager(
+        config=CooldownConfig(global_interval_seconds=10.0),
+    )
+    events = (
+        _event(TriggerType.FASTEST_LAP),
+        _event(TriggerType.INCIDENT),
+    )
+
+    allowed = manager.filter(events, now=100.0)
+
+    assert allowed == (_event(TriggerType.INCIDENT),)
+
+
+def test_filter_allows_incident_during_global_throttle() -> None:
+    manager = CooldownManager(
+        config=CooldownConfig(global_interval_seconds=10.0),
+    )
+    manager.filter((_event(TriggerType.FASTEST_LAP),), now=100.0)
+
+    allowed = manager.filter((_event(TriggerType.INCIDENT),), now=105.0)
+
+    assert allowed == (_event(TriggerType.INCIDENT),)
+
+
+def test_filter_allows_critical_fuel_during_global_throttle() -> None:
+    manager = CooldownManager(
+        config=CooldownConfig(global_interval_seconds=10.0),
+    )
+    manager.filter((_event(TriggerType.GAP_CLOSING_AHEAD),), now=100.0)
+
+    allowed = manager.filter(
+        (_event(TriggerType.FUEL, risk_level="critical"),),
+        now=105.0,
+    )
+
+    assert allowed == (_event(TriggerType.FUEL, risk_level="critical"),)
+
+
+def test_filter_prefers_critical_fuel_over_gap_in_burst() -> None:
+    manager = CooldownManager(
+        config=CooldownConfig(global_interval_seconds=10.0),
+    )
+    events = (
+        _event(TriggerType.GAP_CLOSING_AHEAD),
+        _event(TriggerType.FUEL, risk_level="critical"),
+    )
+
+    allowed = manager.filter(events, now=100.0)
+
+    assert allowed == (_event(TriggerType.FUEL, risk_level="critical"),)

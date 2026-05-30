@@ -7,6 +7,10 @@ from race_engineer.proactive.cooldown.models import (
     CooldownConfig,
     DEFAULT_GLOBAL_INTERVAL_SECONDS,
 )
+from race_engineer.proactive.cooldown.priority import (
+    bypasses_global_throttle,
+    sort_by_priority,
+)
 from race_engineer.proactive.triggers.models import TriggerEvent, TriggerType
 
 
@@ -50,17 +54,20 @@ class CooldownManager:
         *,
         now: float | None = None,
     ) -> tuple[TriggerEvent, ...]:
-        """Return at most one event when cooldown windows allow."""
+        """Return at most one highest-priority event when cooldown windows allow."""
         if not events:
             return ()
 
         timestamp = now if now is not None else time.monotonic()
         config = self.config
 
-        for event in events:
+        for event in sort_by_priority(events):
             if not self._type_ready(event.type, timestamp, config):
                 continue
-            if not self._global_ready(timestamp, config):
+            if not bypasses_global_throttle(event) and not self._global_ready(
+                timestamp,
+                config,
+            ):
                 continue
 
             self._mark_emitted(event.type, timestamp)
