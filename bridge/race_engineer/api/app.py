@@ -13,6 +13,7 @@ from race_engineer.api.routes.voice import router as voice_router
 from race_engineer.api.routes.ws import router as ws_router
 from race_engineer.api.ws import TelemetryBroadcaster, WebSocketConnectionManager
 from race_engineer.proactive.cooldown import CooldownManager
+from race_engineer.proactive.suppression import SpeechSuppressionManager, WorkloadMonitor
 from race_engineer.ai.llm.client import OpenAiChatClient
 from race_engineer.ai.llm.config import load_openai_llm_config
 from race_engineer.ai.service import EngineerAiService
@@ -102,6 +103,22 @@ def create_app(
     resolved_cooldown_manager = CooldownManager(
         config_provider=lambda: resolved_cooldown_settings.config,
     )
+    resolved_workload_monitor = WorkloadMonitor()
+    resolved_suppression_manager = SpeechSuppressionManager(resolved_workload_monitor)
+
+    resolved_voice_pipeline = voice_pipeline or _build_voice_pipeline()
+    resolved_context_aggregator = context_aggregator or ContextAggregator(
+        resolved_connection_service,
+        fuel_tracker=fuel_tracker,
+        fuel_repository=fuel_repository,
+    )
+    resolved_voice_volume_settings = voice_volume_settings or VoiceVolumeSettings(
+        load_voice_volume_config().volume
+    )
+    resolved_engineer_voice = engineer_voice or _build_engineer_voice(
+        resolved_voice_volume_settings,
+        workload_monitor=resolved_workload_monitor,
+    )
     resolved_broadcaster = broadcaster
     if resolved_broadcaster is None:
         resolved_broadcaster = TelemetryBroadcaster(
@@ -114,20 +131,10 @@ def create_app(
             fuel_tracker=fuel_tracker,
             trace_recorder=trace_recorder,
             cooldown_manager=resolved_cooldown_manager,
+            workload_monitor=resolved_workload_monitor,
+            suppression_manager=resolved_suppression_manager,
+            engineer_voice=resolved_engineer_voice,
         )
-
-    resolved_voice_pipeline = voice_pipeline or _build_voice_pipeline()
-    resolved_context_aggregator = context_aggregator or ContextAggregator(
-        resolved_connection_service,
-        fuel_tracker=fuel_tracker,
-        fuel_repository=fuel_repository,
-    )
-    resolved_voice_volume_settings = voice_volume_settings or VoiceVolumeSettings(
-        load_voice_volume_config().volume
-    )
-    resolved_engineer_voice = engineer_voice or _build_engineer_voice(
-        resolved_voice_volume_settings
-    )
     resolved_engineer_ai = engineer_ai or _build_engineer_ai()
     resolved_personality_settings = personality_settings or PersonalitySettings()
     resolved_hotkey_settings = hotkey_settings or VoiceHotkeySettings.from_env()
@@ -201,6 +208,8 @@ def _build_hotkey_service(
 
 def _build_engineer_voice(
     voice_volume_settings: VoiceVolumeSettings,
+    *,
+    workload_monitor: WorkloadMonitor | None = None,
 ) -> EngineerVoiceService | None:
     config = load_elevenlabs_tts_config()
     if config is None:
@@ -208,6 +217,7 @@ def _build_engineer_voice(
     return EngineerVoiceService(
         ElevenLabsTtsClient(config),
         volume_settings=voice_volume_settings,
+        workload_monitor=workload_monitor,
     )
 
 
