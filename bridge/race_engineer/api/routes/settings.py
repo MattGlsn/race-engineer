@@ -4,6 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from race_engineer.ai.prompt.models import PersonalityMode
+from race_engineer.proactive.triggers.models import TriggerType
+from race_engineer.settings.cooldown import CooldownSettings, validate_cooldown_interval
 from race_engineer.settings.hotkey import VoiceHotkeySettings
 from race_engineer.settings.personality import PersonalitySettings
 from race_engineer.settings.volume import VoiceVolumeSettings
@@ -144,3 +146,81 @@ def update_voice_hotkey(
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
     return VoiceHotkeyResponse(hotkey=settings.spec)
+
+
+class CooldownSettingsBody(BaseModel):
+    global_interval_seconds: float | None = Field(
+        default=None,
+        ge=0.0,
+        description="Minimum seconds between any proactive trigger messages",
+    )
+    trigger_intervals_seconds: dict[str, float] | None = Field(
+        default=None,
+        description="Per-trigger cooldowns keyed by trigger type",
+    )
+
+
+class CooldownSettingsResponse(BaseModel):
+    global_interval_seconds: float
+    trigger_intervals_seconds: dict[str, float]
+
+
+def get_cooldown_settings(request: Request) -> CooldownSettings:
+    settings = getattr(request.app.state, "cooldown_settings", None)
+    if settings is None:
+        return CooldownSettings()
+    return settings
+
+
+CooldownSettingsDep = Annotated[CooldownSettings, Depends(get_cooldown_settings)]
+
+
+def _cooldown_response(settings: CooldownSettings) -> CooldownSettingsResponse:
+    config = settings.config
+    return CooldownSettingsResponse(
+        global_interval_seconds=config.global_interval_seconds,
+        trigger_intervals_seconds={
+            trigger_type.value: interval
+            for trigger_type, interval in config.trigger_intervals_seconds.items()
+        },
+    )
+
+
+@router.get("/settings/cooldown")
+def get_cooldown(settings: CooldownSettingsDep) -> CooldownSettingsResponse:
+    return _cooldown_response(settings)
+
+
+@router.put("/settings/cooldown")
+def update_cooldown(
+    body: CooldownSettingsBody,
+    settings: CooldownSettingsDep,
+) -> CooldownSettingsResponse:
+    trigger_intervals: dict[TriggerType, float] | None = None
+    if body.trigger_intervals_seconds is not None:
+        trigger_intervals = {}
+        for key, value in body.trigger_intervals_seconds.items():
+            try:
+                trigger_type = TriggerType(key)
+            except ValueError as exc:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"unknown trigger type: {key}",
+                ) from exc
+            try:
+                trigger_intervals[trigger_type] = validate_cooldown_interval(value)
+            except ValueError as exc:
+                raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    global_interval = body.global_interval_seconds
+    if global_interval is not None:
+        try:
+            global_interval = validate_cooldown_interval(global_interval)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    settings.update(
+        global_interval_seconds=global_interval,
+        trigger_intervals_seconds=trigger_intervals,
+    )
+    return _cooldown_response(settings)
