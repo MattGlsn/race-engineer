@@ -12,6 +12,7 @@ from race_engineer.api.routes.settings import router as settings_router
 from race_engineer.api.routes.voice import router as voice_router
 from race_engineer.api.routes.ws import router as ws_router
 from race_engineer.api.ws import TelemetryBroadcaster, WebSocketConnectionManager
+from race_engineer.proactive.cooldown import CooldownManager
 from race_engineer.ai.llm.client import OpenAiChatClient
 from race_engineer.ai.llm.config import load_openai_llm_config
 from race_engineer.ai.service import EngineerAiService
@@ -37,6 +38,7 @@ from race_engineer.voice.conversation.orchestrator import VoiceConversationOrche
 from race_engineer.voice.hotkey.errors import HotkeyRegistrationError
 from race_engineer.voice.hotkey.service import VoiceHotkeyService
 from race_engineer.settings.hotkey import VoiceHotkeySettings
+from race_engineer.settings.cooldown import CooldownSettings
 from race_engineer.settings.personality import PersonalitySettings
 from race_engineer.settings.volume import VoiceVolumeSettings
 
@@ -76,6 +78,7 @@ def create_app(
     personality_settings: PersonalitySettings | None = None,
     voice_volume_settings: VoiceVolumeSettings | None = None,
     hotkey_settings: VoiceHotkeySettings | None = None,
+    cooldown_settings: CooldownSettings | None = None,
 ) -> FastAPI:
     app = FastAPI(
         title="Race Engineer Bridge API",
@@ -95,6 +98,10 @@ def create_app(
     trace_repository = TraceRepository(db_connection)
     fuel_tracker = FuelConsumptionTracker(repository=fuel_repository)
     trace_recorder = TraceRecorder(repository=trace_repository)
+    resolved_cooldown_settings = cooldown_settings or CooldownSettings()
+    resolved_cooldown_manager = CooldownManager(
+        config_provider=lambda: resolved_cooldown_settings.config,
+    )
     resolved_broadcaster = broadcaster
     if resolved_broadcaster is None:
         resolved_broadcaster = TelemetryBroadcaster(
@@ -106,6 +113,7 @@ def create_app(
             PositionCalculator(sdk=sdk),
             fuel_tracker=fuel_tracker,
             trace_recorder=trace_recorder,
+            cooldown_manager=resolved_cooldown_manager,
         )
 
     resolved_voice_pipeline = voice_pipeline or _build_voice_pipeline()
@@ -134,6 +142,7 @@ def create_app(
     app.state.personality_settings = resolved_personality_settings
     app.state.voice_volume_settings = resolved_voice_volume_settings
     app.state.hotkey_settings = resolved_hotkey_settings
+    app.state.cooldown_settings = resolved_cooldown_settings
     app.state.hotkey_service = hotkey_service or _build_hotkey_service(
         resolved_voice_pipeline,
         resolved_ws_manager,
