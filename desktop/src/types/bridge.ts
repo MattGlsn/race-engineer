@@ -62,10 +62,15 @@ export type RaceStateData = {
   fuel_projection: FuelProjectionSnapshot;
 };
 
+export type VoiceStateData = {
+  status: "recording" | "idle";
+};
+
 import type { TranscriptMessageData } from "./transcript";
 
 export type BridgeMessage =
   | { type: "connection"; ts: number; data: ConnectionState }
   | { type: "telemetry"; ts: number; data: Record<string, unknown> }
   | { type: "race_state"; ts: number; data: RaceStateData }
-  | { type: "transcript"; ts: number; data: TranscriptMessageData };
+  | { type: "transcript"; ts: number; data: TranscriptMessageData }
+  | { type: "voice_state"; ts: number; data: VoiceStateData };

@@ -21,7 +21,7 @@ def connect(db_path: Path | str | None = None) -> sqlite3.Connection:
     """Open a SQLite connection and ensure schema exists."""
     path = Path(db_path) if db_path is not None else DEFAULT_DB_PATH
     path.parent.mkdir(parents=True, exist_ok=True)
-    connection = sqlite3.connect(path)
+    connection = sqlite3.connect(path, check_same_thread=False)
     connection.row_factory = sqlite3.Row
     init_schema(connection)
     return connection

@@ -1,6 +1,6 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from race_engineer.settings.hotkey import VoiceHotkeySettings
 from race_engineer.voice.hotkey.binding import HotkeyBinding
@@ -9,10 +9,40 @@ from race_engineer.voice.stt.models import TranscriptResult
 from race_engineer.voice.stt.result import VoicePipelineResult
 
 
-def test_service_delegates_successful_transcript_to_orchestrator() -> None:
+@patch("race_engineer.voice.hotkey.service.asyncio.run_coroutine_threadsafe")
+def test_service_broadcasts_voice_state(mock_run_coroutine: MagicMock) -> None:
+    pipeline = MagicMock()
+    ws_manager = MagicMock()
+    ws_manager.broadcast = AsyncMock()
+    service = VoiceHotkeyService(pipeline, ws_manager=ws_manager)
+    loop = asyncio.new_event_loop()
+
+    def run_immediately(coro: asyncio.Future, target_loop: asyncio.AbstractEventLoop) -> None:
+        loop.run_until_complete(coro)
+
+    mock_run_coroutine.side_effect = run_immediately
+    service._loop = loop
+
+    service._broadcast_voice_state("recording")
+    service._broadcast_voice_state("idle")
+
+    assert mock_run_coroutine.call_count == 2
+    assert ws_manager.broadcast.call_count == 2
+    recording_message = ws_manager.broadcast.call_args_list[0][0][0]
+    idle_message = ws_manager.broadcast.call_args_list[1][0][0]
+    assert recording_message["type"] == "voice_state"
+    assert recording_message["data"]["status"] == "recording"
+    assert idle_message["data"]["status"] == "idle"
+
+    loop.close()
+
+
+def test_service_ignores_overlapping_transcripts() -> None:
     pipeline = MagicMock()
     listener = MagicMock()
     orchestrator = MagicMock()
+    process_lock = MagicMock()
+    process_lock.acquire.return_value = True
     hotkey_settings = VoiceHotkeySettings(HotkeyBinding.parse("ctrl+shift+space"))
     executor = ThreadPoolExecutor(max_workers=1)
     service = VoiceHotkeyService(
@@ -21,6 +51,41 @@ def test_service_delegates_successful_transcript_to_orchestrator() -> None:
         listener=listener,
         orchestrator=orchestrator,
         executor=executor,
+        process_lock=process_lock,
+    )
+    loop = asyncio.new_event_loop()
+    service.start(loop)
+
+    result = VoicePipelineResult.ok(
+        TranscriptResult(text="how much fuel?", language_code="en", duration_ms=50)
+    )
+
+    service._on_transcript(result)
+    service._on_transcript(result)
+    executor.shutdown(wait=True)
+    loop.close()
+
+    orchestrator.handle_transcript.assert_called_once_with(
+        text="how much fuel?",
+        intent="fuel",
+    )
+
+
+def test_service_delegates_successful_transcript_to_orchestrator() -> None:
+    pipeline = MagicMock()
+    listener = MagicMock()
+    orchestrator = MagicMock()
+    process_lock = MagicMock()
+    process_lock.acquire.return_value = True
+    hotkey_settings = VoiceHotkeySettings(HotkeyBinding.parse("ctrl+shift+space"))
+    executor = ThreadPoolExecutor(max_workers=1)
+    service = VoiceHotkeyService(
+        pipeline,
+        hotkey_settings=hotkey_settings,
+        listener=listener,
+        orchestrator=orchestrator,
+        executor=executor,
+        process_lock=process_lock,
     )
     loop = asyncio.new_event_loop()
     service.start(loop)
@@ -44,6 +109,8 @@ def test_rebind_restarts_listener_with_updated_binding(
 ) -> None:
     pipeline = MagicMock()
     orchestrator = MagicMock()
+    process_lock = MagicMock()
+    process_lock.acquire.return_value = True
     mock_listener = MagicMock()
     mock_listener_cls.return_value = mock_listener
     hotkey_settings = VoiceHotkeySettings(HotkeyBinding.parse("ctrl+shift+space"))
@@ -53,6 +120,7 @@ def test_rebind_restarts_listener_with_updated_binding(
         hotkey_settings=hotkey_settings,
         orchestrator=orchestrator,
         executor=executor,
+        process_lock=process_lock,
     )
     loop = asyncio.new_event_loop()
     service.start(loop)

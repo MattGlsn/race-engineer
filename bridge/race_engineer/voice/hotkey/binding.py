@@ -28,12 +28,6 @@ class HotkeyBinding:
     def matches(self, pressed: frozenset[str]) -> bool:
         return self.modifiers <= pressed and self.key in pressed
 
-    def is_trigger_release(self, released: str, still_pressed: frozenset[str]) -> bool:
-        if released != self.key:
-            return False
-        remaining = still_pressed - {released}
-        return self.modifiers <= remaining
-
     def format(self) -> str:
         parts = sorted(self.modifiers) + [self.key]
         return "+".join(parts)

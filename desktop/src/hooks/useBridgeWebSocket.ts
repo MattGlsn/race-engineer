@@ -14,6 +14,7 @@ export type BridgeSocketState = {
   connectionState: string | null;
   raceState: RaceStateData | null;
   lastRaceStateAt: number | null;
+  voiceStatus: "recording" | "idle";
   lastError: string | null;
 };
 
@@ -28,6 +29,7 @@ const initialState: BridgeSocketState = {
   connectionState: null,
   raceState: null,
   lastRaceStateAt: null,
+  voiceStatus: "idle",
   lastError: null,
 };
 
@@ -133,6 +135,16 @@ export function useBridgeWebSocket({
 
         if (message.type === "transcript") {
           onTranscriptRef.current?.(message.data, message.ts);
+          return;
+        }
+
+        if (message.type === "voice_state") {
+          setState((prev) => ({
+            ...prev,
+            bridgeConnected: true,
+            voiceStatus: message.data.status,
+            lastError: null,
+          }));
         }
       };
 
@@ -157,6 +169,7 @@ export function useBridgeWebSocket({
           connectionState: null,
           raceState: null,
           lastRaceStateAt: null,
+          voiceStatus: "idle",
         }));
         scheduleReconnect();
       };

@@ -1,4 +1,5 @@
 import sqlite3
+import threading
 
 from race_engineer.fuel.models import LapFuelRecord
 from race_engineer.storage.database import init_schema
@@ -44,3 +45,24 @@ def test_save_upserts_same_lap() -> None:
     records = repository.list_for_session("Daytona|Race")
     assert len(records) == 1
     assert records[0].usage_liters == 2.0
+
+
+def test_list_for_session_from_another_thread() -> None:
+    connection = sqlite3.connect(":memory:", check_same_thread=False)
+    connection.row_factory = sqlite3.Row
+    init_schema(connection)
+    repository = FuelLapRepository(connection)
+    repository.save(
+        "Daytona|Race",
+        LapFuelRecord(lap=1, fuel_start=30.0, fuel_end=28.5, usage_liters=1.5),
+    )
+
+    records: list[LapFuelRecord] = []
+    thread = threading.Thread(
+        target=lambda: records.extend(repository.list_for_session("Daytona|Race"))
+    )
+    thread.start()
+    thread.join()
+
+    assert len(records) == 1
+    assert records[0].lap == 1

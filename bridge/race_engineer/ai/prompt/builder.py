@@ -3,13 +3,12 @@ from typing import TypedDict
 from race_engineer.ai.prompt.models import DEFAULT_PERSONALITY_MODE, PersonalityMode
 from race_engineer.ai.prompt.personality import personality_instructions
 from race_engineer.ai.prompt.safety import SAFETY_RULES
+from race_engineer.ai.prompt.wrapper import DEFAULT_MAX_RESPONSE_WORDS, RADIO_STYLE_RULES
 from race_engineer.context.models import EngineerContext
 from race_engineer.context.validation import serialize_context
 
-DEFAULT_MAX_RESPONSE_WORDS = 50
-
 ENGINEER_ROLE = """\
-You are the driver's AI race engineer for iRacing. You speak over the radio in short, clear replies.
+You are the driver's AI race engineer for iRacing. You speak over the radio to your pilot in short, clear replies.
 Answer the driver's question using only the race context JSON provided with their message.
 """
 
@@ -29,6 +28,7 @@ def build_system_prompt(
     sections = (
         ENGINEER_ROLE.strip(),
         personality_instructions(mode),
+        RADIO_STYLE_RULES.strip(),
         SAFETY_RULES.strip(),
         (
             f"## Response length\n\n"

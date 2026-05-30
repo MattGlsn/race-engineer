@@ -515,6 +515,45 @@ button {
   color: var(--text-muted);
 }
 
+.voice-recording-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0 var(--space-4) var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius);
+  border: 1px solid var(--success);
+  background: color-mix(in srgb, var(--success) 12%, var(--bg-elevated));
+}
+
+.voice-recording-indicator__dot {
+  flex-shrink: 0;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 50%;
+  background: var(--success);
+  animation: voice-recording-pulse 1.2s ease-in-out infinite;
+}
+
+.voice-recording-indicator__text {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--success);
+}
+
+@keyframes voice-recording-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.45;
+    transform: scale(0.85);
+  }
+}
+
 .conversation-list {
   list-style: none;
   margin: 0;

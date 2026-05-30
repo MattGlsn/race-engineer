@@ -7,8 +7,8 @@ from race_engineer.ai.models import EngineerAskResult
 from race_engineer.ai.prompt.builder import (
     DEFAULT_MAX_RESPONSE_WORDS,
     build_engineer_messages,
-    enforce_word_limit,
 )
+from race_engineer.ai.prompt.wrapper import wrap_engineer_reply
 from race_engineer.context.models import EngineerContext
 from race_engineer.context.validation import serialize_context, validate_engineer_context
 
@@ -54,7 +54,7 @@ class EngineerAiService:
             )
             return ask_result
 
-        limited_text = enforce_word_limit(result.data.text, max_response_words)
+        limited_text = wrap_engineer_reply(result.data.text, max_words=max_response_words)
         ask_result = EngineerAskResult(
             text=limited_text,
             model=result.data.model,

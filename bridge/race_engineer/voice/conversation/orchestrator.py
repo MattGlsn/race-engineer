@@ -18,6 +18,9 @@ AI_NOT_CONFIGURED_MESSAGE = (
 TTS_NOT_CONFIGURED_MESSAGE = (
     "Engineer voice is not configured. Set ELEVENLABS_VOICE_ID."
 )
+CONVERSATION_FAILED_MESSAGE = (
+    "Something went wrong processing your message. Check the bridge logs."
+)
 
 
 class VoiceConversationOrchestrator:
@@ -44,54 +47,72 @@ class VoiceConversationOrchestrator:
         self._loop = loop
 
     def handle_transcript(self, *, text: str, intent: str | None) -> None:
-        context = self._context_aggregator.build()
-        track_name = context.session.track_name
-        session_type = context.session.session_type
+        track_name: str | None = None
+        session_type: str | None = None
+        try:
+            context = self._context_aggregator.build()
+            track_name = context.session.track_name
+            session_type = context.session.session_type
 
-        self._broadcast_transcript(
-            role="driver",
-            text=text,
-            intent=intent,
-            track_name=track_name,
-            session_type=session_type,
-        )
-
-        config_error = self._config_error_message()
-        if config_error is not None:
             self._broadcast_transcript(
-                role="engineer",
-                text=config_error,
+                role="driver",
+                text=text,
+                intent=intent,
                 track_name=track_name,
                 session_type=session_type,
             )
-            return
 
-        assert self._engineer_ai is not None
-        assert self._engineer_voice is not None
+            config_error = self._config_error_message()
+            if config_error is not None:
+                self._broadcast_transcript(
+                    role="engineer",
+                    text=config_error,
+                    track_name=track_name,
+                    session_type=session_type,
+                )
+                return
 
-        personality = (
-            self._personality_settings.mode
-            if self._personality_settings is not None
-            else None
-        )
-        result = self._engineer_ai.ask(
-            text,
-            context,
-            intent=intent,
-            personality=personality,
-        )
-        self._broadcast_transcript(
-            role="engineer",
-            text=result.text,
-            track_name=track_name,
-            session_type=session_type,
-        )
+            assert self._engineer_ai is not None
+            assert self._engineer_voice is not None
 
-        speak_result = self._engineer_voice.speak(result.text)
-        if not speak_result.success:
-            logger.warning(
-                "engineer voice playback failed: %s",
-                speak_result.message or "unknown error",
+            personality = (
+                self._personality_settings.mode
+                if self._personality_settings is not None
+                else None
+            )
+            result = self._engineer_ai.ask(
+                text,
+                context,
+                intent=intent,
+                personality=personality,
+            )
+            self._broadcast_transcript(
+                role="engineer",
+                text=result.text,
+                track_name=track_name,
+                session_type=session_type,
+            )
+
+            speak_result = self._engineer_voice.speak(result.text)
+            if not speak_result.success:
+                logger.warning(
+                    "engineer voice playback failed: %s",
+                    speak_result.message or "unknown error",
+                )
+        except Exception:
+            logger.exception("voice conversation failed for transcript %r", text)
+            self._broadcast_transcript(
+                role="driver",
+                text=text,
+                intent=intent,
+                track_name=track_name,
+                session_type=session_type,
+            )
+            self._broadcast_transcript(
+                role="engineer",
+                text=CONVERSATION_FAILED_MESSAGE,
+                track_name=track_name,
+                session_type=session_type,
             )
 
     def _config_error_message(self) -> str | None:

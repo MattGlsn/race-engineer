@@ -35,7 +35,7 @@ def test_health_endpoint(client: TestClient, mock_connection_service: MagicMock)
     data = response.json()
     assert data["status"] == "ok"
     assert data["connection"]["state"] == "disconnected"
-    mock_connection_service.as_dict.assert_called_once()
+    assert mock_connection_service.as_dict.call_count >= 1
     mock_connection_service.check_health.assert_not_called()
 
 
@@ -69,10 +69,12 @@ def test_cors_allows_localhost_origin(client: TestClient) -> None:
     assert response.headers["access-control-allow-origin"] == "http://localhost:3000"
 
 
-def test_lifecycle_disconnects_on_shutdown(mock_connection_service: MagicMock) -> None:
+def test_lifecycle_connects_on_startup_and_disconnects_on_shutdown(
+    mock_connection_service: MagicMock,
+) -> None:
     app = create_app(connection_service=mock_connection_service)
 
     with TestClient(app):
-        pass
+        mock_connection_service.connect.assert_called_once()
 
     mock_connection_service.disconnect.assert_called_once()

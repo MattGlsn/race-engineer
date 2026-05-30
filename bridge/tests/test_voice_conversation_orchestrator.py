@@ -13,6 +13,7 @@ from race_engineer.ai.prompt.models import PersonalityMode
 from race_engineer.settings.personality import PersonalitySettings
 from race_engineer.voice.conversation.orchestrator import (
     AI_NOT_CONFIGURED_MESSAGE,
+    CONVERSATION_FAILED_MESSAGE,
     TTS_NOT_CONFIGURED_MESSAGE,
     VoiceConversationOrchestrator,
 )
@@ -217,6 +218,28 @@ def test_handle_transcript_uses_personality_settings(
     _run_broadcasts(loop, ws_manager)
 
     assert engineer_ai.ask.call_args.kwargs["personality"] == PersonalityMode.CALM
+
+
+def test_handle_transcript_context_failure_broadcasts_error(
+    orchestrator: VoiceConversationOrchestrator,
+    context_aggregator: MagicMock,
+    engineer_ai: MagicMock,
+    engineer_voice: MagicMock,
+    ws_manager: MagicMock,
+    loop: asyncio.AbstractEventLoop,
+) -> None:
+    context_aggregator.build.side_effect = RuntimeError("sdk read failed")
+
+    orchestrator.handle_transcript(text="where am I?", intent="position")
+    _run_broadcasts(loop, ws_manager)
+
+    engineer_ai.ask.assert_not_called()
+    engineer_voice.speak.assert_not_called()
+    messages = [call.args[0] for call in ws_manager.broadcast.await_args_list]
+    assert messages[0]["data"]["role"] == "driver"
+    assert messages[0]["data"]["text"] == "where am I?"
+    assert messages[1]["data"]["role"] == "engineer"
+    assert messages[1]["data"]["text"] == CONVERSATION_FAILED_MESSAGE
 
 
 def test_handle_transcript_tts_failure_still_broadcasts_engineer_reply(

@@ -41,6 +41,10 @@ class WebSocketConnectionManager:
 
     async def broadcast(self, message: dict[str, Any]) -> None:
         if not self._connections:
+            logger.debug(
+                "Skipped websocket broadcast (%s): no clients connected",
+                message.get("type"),
+            )
             return
 
         async with self._lock:
