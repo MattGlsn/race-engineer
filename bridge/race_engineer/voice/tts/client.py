@@ -63,6 +63,7 @@ class ElevenLabsTtsClient:
             json={
                 "text": stripped,
                 "model_id": self._config.model_id,
+                "voice_settings": {"speed": self._config.speed},
             },
         )
         try:

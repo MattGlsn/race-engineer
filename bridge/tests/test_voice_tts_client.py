@@ -41,6 +41,7 @@ def test_synthesize_stream_returns_pcm_chunks(config: ElevenLabsTtsConfig) -> No
     assert args[1].endswith("/v1/text-to-speech/voice-123/stream")
     assert kwargs["params"]["output_format"] == "pcm_16000"
     assert kwargs["json"]["text"] == "stay out"
+    assert kwargs["json"]["voice_settings"] == {"speed": 0.8}
     stream_cm.__exit__.assert_called_once()
 
 
