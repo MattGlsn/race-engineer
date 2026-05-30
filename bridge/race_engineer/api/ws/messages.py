@@ -14,6 +14,10 @@ def build_connection_message(connection: dict[str, Any]) -> dict[str, Any]:
     return {"type": "connection", "ts": time.time(), "data": connection}
 
 
+def build_voice_state_message(*, status: str) -> dict[str, Any]:
+    return {"type": "voice_state", "ts": time.time(), "data": {"status": status}}
+
+
 def build_transcript_message(
     *,
     role: str,

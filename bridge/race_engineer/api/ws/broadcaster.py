@@ -3,7 +3,11 @@ import logging
 import time
 
 from race_engineer.api.ws.manager import WebSocketConnectionManager
-from race_engineer.api.ws.messages import build_race_state_message, build_telemetry_message
+from race_engineer.api.ws.messages import (
+    build_connection_message,
+    build_race_state_message,
+    build_telemetry_message,
+)
 from race_engineer.connection import SdkConnectionService
 from race_engineer.session import SessionInfoReader
 from race_engineer.fuel import (
@@ -22,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 TELEMETRY_INTERVAL_SECONDS = 0.05
 RACE_STATE_INTERVAL_SECONDS = 0.5
+SDK_RECONNECT_INTERVAL_SECONDS = 1.0
 
 
 class TelemetryBroadcaster:
@@ -94,10 +99,13 @@ class TelemetryBroadcaster:
         self._race_state_interval = race_state_interval
         self._task: asyncio.Task[None] | None = None
         self._last_race_state_at = 0.0
+        self._last_connection_payload: dict[str, object] | None = None
+        self._last_connect_attempt_at = 0.0
 
     async def start(self) -> None:
         if self._task is not None and not self._task.done():
             return
+        self._last_connection_payload = self._connection_service.as_dict()
         self._task = asyncio.create_task(self._run(), name="telemetry-broadcaster")
 
     async def stop(self) -> None:
@@ -118,8 +126,7 @@ class TelemetryBroadcaster:
                     await asyncio.sleep(self._telemetry_interval)
                     continue
 
-                if self._connection_service.is_connected:
-                    self._connection_service.check_health()
+                await self._sync_connection_state()
 
                 snapshot = self._telemetry_reader.read_snapshot()
                 laps_completed = self._lap_reader.read_laps_completed()
@@ -170,3 +177,17 @@ class TelemetryBroadcaster:
         except Exception:
             logger.exception("Telemetry broadcaster failed")
             raise
+
+    async def _sync_connection_state(self) -> None:
+        if self._connection_service.is_connected:
+            self._connection_service.check_health()
+        else:
+            now = time.monotonic()
+            if now - self._last_connect_attempt_at >= SDK_RECONNECT_INTERVAL_SECONDS:
+                self._last_connect_attempt_at = now
+                self._connection_service.connect()
+
+        connection_payload = self._connection_service.as_dict()
+        if connection_payload != self._last_connection_payload:
+            self._last_connection_payload = connection_payload
+            await self._manager.broadcast(build_connection_message(connection_payload))

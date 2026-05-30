@@ -46,6 +46,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     connection_service = app.state.connection_service
     broadcaster = app.state.broadcaster
     hotkey_service: VoiceHotkeyService | None = app.state.hotkey_service
+    connection_service.connect()
     await broadcaster.start()
     if hotkey_service is not None:
         try:
@@ -178,6 +179,7 @@ def _build_hotkey_service(
     )
     return VoiceHotkeyService(
         voice_pipeline,
+        ws_manager=ws_manager,
         hotkey_settings=hotkey_settings,
         orchestrator=orchestrator,
     )

@@ -1,3 +1,4 @@
+import logging
 from unittest.mock import MagicMock
 
 import httpx
@@ -40,6 +41,26 @@ def test_transcribe_returns_transcript(config: ElevenLabsSttConfig) -> None:
     assert kwargs["data"]["model_id"] == "scribe_v2"
     assert kwargs["data"]["language_code"] == "en"
     assert kwargs["files"]["file"][0] == "audio.wav"
+
+
+def test_transcribe_logs_transcript(config: ElevenLabsSttConfig, caplog) -> None:
+    http_client = MagicMock(spec=httpx.Client)
+    http_client.post.return_value = httpx.Response(
+        200,
+        json={
+            "text": "box box box",
+            "language_code": "eng",
+            "audio_duration_secs": 1.25,
+        },
+    )
+
+    client = ElevenLabsSttClient(config, http_client=http_client)
+
+    with caplog.at_level(logging.INFO):
+        client.transcribe(b"RIFF....WAVE")
+
+    assert "box box box" in caplog.text
+    assert "elevenlabs stt transcript" in caplog.text
 
 
 def test_transcribe_rejects_empty_wav(config: ElevenLabsSttConfig) -> None:

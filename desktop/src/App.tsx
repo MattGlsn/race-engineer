@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 import { AppShell } from "./components/layout/AppShell";
 import type { AppView } from "./components/layout/SidebarNav";
@@ -12,12 +12,20 @@ import { usePersonalitySettings } from "./hooks/usePersonalitySettings";
 import { useVoiceHotkey } from "./hooks/useVoiceHotkey";
 import { useVoiceVolume } from "./hooks/useVoiceVolume";
 import { useTranscriptStore } from "./hooks/useTranscriptStore";
+import type { TranscriptMessageData } from "./types/transcript";
 import { isRaceDataLive } from "./utils/bridge";
 
 export default function App() {
   const [activeView, setActiveView] = useState<AppView>("dashboard");
   const transcriptStore = useTranscriptStore();
-  const bridge = useBridgeWebSocket({ onTranscript: transcriptStore.handleIncoming });
+  const onTranscript = useCallback(
+    (data: TranscriptMessageData, ts: number) => {
+      transcriptStore.handleIncoming(data, ts);
+      setActiveView("transcript");
+    },
+    [transcriptStore.handleIncoming],
+  );
+  const bridge = useBridgeWebSocket({ onTranscript });
   const personality = usePersonalitySettings({
     bridgeConnected: bridge.bridgeConnected,
   });
@@ -63,6 +71,7 @@ export default function App() {
           onChangeVoiceVolume={voiceVolume.setVolumeLevel}
           voiceVolumeSyncError={voiceVolume.syncError}
           bridgeConnected={bridge.bridgeConnected}
+          voiceStatus={bridge.voiceStatus}
         />
       )}
     </AppShell>

@@ -12,6 +12,7 @@ from race_engineer.voice.stt.result import VoicePipelineResult
 logger = logging.getLogger(__name__)
 
 TranscriptCallback = Callable[[VoicePipelineResult[TranscriptResult]], None]
+StateChangeCallback = Callable[[str], None]
 
 
 class VoiceHotkeyController:
@@ -22,9 +23,11 @@ class VoiceHotkeyController:
         pipeline: VoicePipeline,
         *,
         on_transcript: TranscriptCallback | None = None,
+        on_state_change: StateChangeCallback | None = None,
     ) -> None:
         self._pipeline = pipeline
         self._on_transcript = on_transcript
+        self._on_state_change = on_state_change
         self._lock = threading.Lock()
         self._ptt_active = False
 
@@ -47,12 +50,18 @@ class VoiceHotkeyController:
 
             self._ptt_active = True
 
+        if self._on_state_change is not None:
+            self._on_state_change("recording")
+
     def on_release(self) -> None:
         with self._lock:
             if not self._ptt_active:
                 logger.debug("hotkey release ignored: push-to-talk not active")
                 return
             self._ptt_active = False
+
+        if self._on_state_change is not None:
+            self._on_state_change("idle")
 
         result = self._pipeline.stop_and_transcribe()
         if self._on_transcript is not None:

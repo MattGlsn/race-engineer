@@ -50,6 +50,7 @@ class GlobalHotkeyListener:
         self._pressed: set[str] = set()
         self._combo_held = False
         self._listener: Any | None = None
+        self._active = False
 
     def start(self) -> None:
         if self._listener is not None:
@@ -68,12 +69,14 @@ class GlobalHotkeyListener:
                 f"failed to start global hotkey listener: {exc}"
             ) from exc
 
+        self._active = True
         logger.info(
             "global voice hotkey active: %s",
             "+".join(sorted(self._binding.modifiers) + [self._binding.key]),
         )
 
     def stop(self) -> None:
+        self._active = False
         if self._listener is None:
             return
 
@@ -83,6 +86,8 @@ class GlobalHotkeyListener:
         self._combo_held = False
 
     def _handle_press(self, key: Any) -> None:
+        if not self._active:
+            return
         token = normalize_key(key)
         if token is None:
             return
@@ -93,18 +98,17 @@ class GlobalHotkeyListener:
             self._controller.on_press()
 
     def _handle_release(self, key: Any) -> None:
+        if not self._active:
+            return
         token = normalize_key(key)
         if token is None:
             return
 
-        if self._combo_held and self._binding.is_trigger_release(
-            token,
-            frozenset(self._pressed),
-        ):
+        self._pressed.discard(token)
+
+        if self._combo_held and not self._binding.matches(frozenset(self._pressed)):
             self._combo_held = False
             self._controller.on_release()
-
-        self._pressed.discard(token)
 
     def _resolve_keyboard(self) -> Any:
         if self._keyboard_module is not None:

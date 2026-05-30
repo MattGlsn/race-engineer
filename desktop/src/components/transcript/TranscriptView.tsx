@@ -2,6 +2,7 @@ import type { Conversation } from "../../types/transcript";
 import { ConversationList } from "./ConversationList";
 import { EngineerVolumeControl } from "./EngineerVolumeControl";
 import { TranscriptMessageList } from "./TranscriptMessageList";
+import { VoiceRecordingIndicator } from "./VoiceRecordingIndicator";
 
 type TranscriptViewProps = {
   conversations: Conversation[];
@@ -12,6 +13,7 @@ type TranscriptViewProps = {
   onChangeVoiceVolume: (volume: number) => void;
   voiceVolumeSyncError: string | null;
   bridgeConnected: boolean;
+  voiceStatus: "recording" | "idle";
 };
 
 export function TranscriptView({
@@ -23,6 +25,7 @@ export function TranscriptView({
   onChangeVoiceVolume,
   voiceVolumeSyncError,
   bridgeConnected,
+  voiceStatus,
 }: TranscriptViewProps) {
   return (
     <section className="transcript-view" aria-label="Transcript">
@@ -48,6 +51,7 @@ export function TranscriptView({
             {selectedConversation?.title ?? "Transcript"}
           </h2>
         </header>
+        <VoiceRecordingIndicator status={voiceStatus} />
         <TranscriptMessageList
           conversationId={selectedConversationId}
           conversationTitle={selectedConversation?.title ?? null}

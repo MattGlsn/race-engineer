@@ -48,12 +48,13 @@ Optional environment:
 - `ELEVENLABS_STT_MODEL`, `ELEVENLABS_TTS_MODEL`, `ELEVENLABS_TTS_OUTPUT_FORMAT` (default `pcm_16000`)
 - `VOICE_OUTPUT_VOLUME` (0.0–2.0, default `1.0`; values above `1.0` boost TTS over engine noise; also adjustable via desktop or `GET`/`PUT /settings/volume`)
 - `VOICE_HOTKEY` (default `ctrl+shift+space`) — initial push-to-talk binding at bridge startup; also adjustable at runtime via desktop or `GET`/`PUT /settings/hotkey` (see **Push-to-talk conversation** below)
+- `VOICE_JOYSTICK_PTT` (optional) — steering wheel / gamepad input for push-to-talk. Examples: `12` (button 12 on device 0), `1:12` (device 1, button 12), `0:axis:4` (device 0, axis 4 positive — common for paddle shifters). Works alongside the keyboard hotkey. Run `python -m race_engineer.voice.hotkey.discover_joystick` to find device/button/axis indices.
 - `OPENAI_API_KEY` — enables engineer AI replies via `/voice/ask` and the PTT conversation loop
 - `OPENAI_MODEL` (default `gpt-4o-mini`), `OPENAI_BASE_URL`, `LLM_TIMEOUT_SECONDS` (default `8.0`), `LLM_MAX_COMPLETION_TOKENS` (default `150`)
 
 ## Push-to-talk conversation
 
-When the bridge is running with `ELEVENLABS_API_KEY` configured, hold the configured push-to-talk hotkey (default `ctrl+shift+space`) to record from the bridge machine's microphone. On release, the bridge runs the full conversation loop:
+When the bridge is running with `ELEVENLABS_API_KEY` configured, hold the configured push-to-talk hotkey (default `ctrl+shift+space`) or steering-wheel button (`VOICE_JOYSTICK_PTT`) to record from the bridge machine's microphone. On release, the bridge runs the full conversation loop:
 
 1. ElevenLabs STT transcribes the recording
 2. Driver transcript is broadcast to WebSocket clients (`role: "driver"`)

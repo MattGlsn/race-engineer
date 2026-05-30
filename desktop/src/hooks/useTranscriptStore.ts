@@ -87,8 +87,8 @@ export function useTranscriptStore() {
       const next = upsertMessage(prev.conversations, data, ts);
       return {
         conversations: next.conversations,
-        selectedConversationId:
-          prev.selectedConversationId ?? next.selectedConversationId,
+        // Always show the conversation that just received a message.
+        selectedConversationId: next.selectedConversationId,
       };
     });
   }, []);

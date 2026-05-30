@@ -51,6 +51,25 @@ def test_listener_invokes_press_and_release() -> None:
     controller.on_release.assert_called_once()
 
 
+def test_listener_stops_recording_when_modifier_released_first() -> None:
+    controller = MagicMock()
+    keyboard = MagicMock()
+    keyboard.Listener.side_effect = lambda **kwargs: FakeListener(**kwargs)
+    binding = HotkeyBinding.parse("ctrl+shift+space")
+    listener = GlobalHotkeyListener(binding, controller, keyboard_module=keyboard)
+
+    listener.start()
+    listener._handle_press(FakeKey("ctrl_l"))
+    listener._handle_press(FakeKey("shift_l"))
+    listener._handle_press(FakeKey("space"))
+    controller.reset_mock()
+
+    listener._handle_release(FakeKey("ctrl_l"))
+
+    controller.on_release.assert_called_once()
+    controller.on_press.assert_not_called()
+
+
 def test_listener_raises_when_start_fails() -> None:
     keyboard = MagicMock()
 

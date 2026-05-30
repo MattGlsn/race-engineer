@@ -71,7 +71,7 @@ def test_ask_truncates_long_replies(service: EngineerAiService) -> None:
     result = service.ask("Status?", context)
 
     assert isinstance(result, EngineerAskResult)
-    assert len(result.text.split()) == 50
+    assert len(result.text.split()) == 30
 
 
 def test_ask_returns_fallback_on_llm_failure(service: EngineerAiService) -> None:

@@ -203,6 +203,34 @@ def _receive_until_type(websocket, message_type: str) -> dict:
             return message
 
 
+def test_websocket_broadcasts_connection_state_changes(
+    client: TestClient,
+    mock_connection_service: MagicMock,
+) -> None:
+    disconnected = {
+        "state": "disconnected",
+        "is_connected": False,
+        "sdk_initialized": False,
+        "sdk_connected": False,
+    }
+    connected = {
+        "state": "connected",
+        "is_connected": True,
+        "sdk_initialized": True,
+        "sdk_connected": True,
+    }
+    responses = iter([disconnected, connected])
+    mock_connection_service.as_dict.side_effect = lambda: next(responses, connected)
+
+    with client.websocket_connect("/ws") as websocket:
+        first = websocket.receive_json()
+        updated = _receive_until_type(websocket, "connection")
+
+    assert first["type"] == "connection"
+    assert first["data"]["state"] == "disconnected"
+    assert updated["data"]["state"] == "connected"
+
+
 def test_websocket_broadcasts_race_state(
     client: TestClient,
     mock_session_reader: MagicMock,

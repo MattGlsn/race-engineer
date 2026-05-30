@@ -122,6 +122,13 @@ class ElevenLabsSttClient:
 
         duration_ms = _duration_ms_from_payload(payload)
 
+        logger.info(
+            "elevenlabs stt transcript text=%r language_code=%s duration_ms=%s",
+            text,
+            language_code,
+            duration_ms,
+        )
+
         return VoicePipelineResult.ok(
             TranscriptResult(
                 text=text,
