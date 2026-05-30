@@ -1,6 +1,6 @@
 import pytest
 
-from race_engineer.coaching.delta import compute_lap_delta, top_losses
+from race_engineer.coaching.delta import compute_lap_delta, compare_to_previous_lap, top_losses
 from race_engineer.coaching.sectors import generate_sectors
 from race_engineer.coaching.trace.models import LapTrace, TraceSample
 
@@ -97,3 +97,23 @@ def test_compute_lap_delta_rejects_sector_count_mismatch() -> None:
 
     with pytest.raises(ValueError, match="sector count mismatch"):
         compute_lap_delta(current, reference)
+
+
+def test_compare_to_previous_lap_uses_previous_lap_reference() -> None:
+    previous = _linear_lap_trace(lap=1, duration=100.0)
+    current = _slower_middle_lap_trace(lap=2)
+
+    result = compare_to_previous_lap(current, previous)
+
+    assert result.reference_kind == "previous"
+    assert result.reference_lap == 1
+    assert result.current_lap == 2
+    assert result.total_loss_seconds == pytest.approx(10.0)
+
+
+def test_compare_to_previous_lap_rejects_non_consecutive_laps() -> None:
+    with pytest.raises(ValueError, match="previous lap number"):
+        compare_to_previous_lap(
+            _linear_lap_trace(lap=3),
+            _linear_lap_trace(lap=1),
+        )

@@ -1,5 +1,7 @@
 from race_engineer.coaching.delta.models import LapDelta, SectorLoss
 from race_engineer.coaching.sectors.models import LapSectors
+from race_engineer.coaching.sectors.generator import generate_sectors
+from race_engineer.coaching.trace.models import LapTrace
 
 LOSS_SECONDS_PRECISION = 3
 
@@ -54,3 +56,15 @@ def top_losses(lap_delta: LapDelta, *, limit: int = 3) -> tuple[SectorLoss, ...]
         reverse=True,
     )
     return tuple(ranked[:limit])
+
+
+def compare_to_previous_lap(current: LapTrace, previous: LapTrace) -> LapDelta:
+    """Compare the current lap against the immediately previous lap."""
+    if previous.lap != current.lap - 1:
+        raise ValueError("previous lap number must be one less than current lap")
+
+    return compute_lap_delta(
+        generate_sectors(current),
+        generate_sectors(previous),
+        reference_kind="previous",
+    )
