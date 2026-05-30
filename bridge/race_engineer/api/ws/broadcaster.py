@@ -5,9 +5,13 @@ import time
 from race_engineer.api.ws.manager import WebSocketConnectionManager
 from race_engineer.api.ws.messages import (
     build_connection_message,
+    build_proactive_trigger_message,
     build_race_state_message,
     build_telemetry_message,
 )
+from race_engineer.proactive.incident import IncidentReader
+from race_engineer.proactive.lap import PlayerBestLapReader
+from race_engineer.proactive.triggers import TriggerEngine, TriggerSnapshot
 from race_engineer.coaching.trace import TraceRecorder
 from race_engineer.connection import SdkConnectionService
 from race_engineer.session import SessionInfoReader
@@ -47,6 +51,9 @@ class TelemetryBroadcaster:
         fuel_projection_engine: FuelProjectionEngine | None = None,
         lap_reader: PlayerLapReader | None = None,
         trace_recorder: TraceRecorder | None = None,
+        best_lap_reader: PlayerBestLapReader | None = None,
+        incident_reader: IncidentReader | None = None,
+        trigger_engine: TriggerEngine | None = None,
         telemetry_interval: float = TELEMETRY_INTERVAL_SECONDS,
         race_state_interval: float | None = RACE_STATE_INTERVAL_SECONDS,
     ) -> None:
@@ -99,6 +106,19 @@ class TelemetryBroadcaster:
         )
         self._trace_recorder = (
             trace_recorder if trace_recorder is not None else TraceRecorder()
+        )
+        self._best_lap_reader = (
+            best_lap_reader
+            if best_lap_reader is not None
+            else PlayerBestLapReader(sdk=connection_service.sdk)
+        )
+        self._incident_reader = (
+            incident_reader
+            if incident_reader is not None
+            else IncidentReader(sdk=connection_service.sdk)
+        )
+        self._trigger_engine = (
+            trigger_engine if trigger_engine is not None else TriggerEngine()
         )
         self._telemetry_interval = telemetry_interval
         self._race_state_interval = race_state_interval
@@ -177,6 +197,20 @@ class TelemetryBroadcaster:
                                 fuel_projection,
                             ),
                         )
+                        trigger_snapshot = TriggerSnapshot(
+                            session_key=session_key,
+                            player_best_lap_time=self._best_lap_reader.read_best_lap_time(),
+                            incident_count=self._incident_reader.read_incident_count(),
+                            fuel_risk_level=fuel_projection.risk_level,
+                            gap_ahead_seconds=gap_ahead.gap_seconds,
+                            gap_behind_seconds=gap_behind.gap_seconds,
+                        )
+                        for trigger_event in self._trigger_engine.evaluate(
+                            trigger_snapshot,
+                        ):
+                            await self._manager.broadcast(
+                                build_proactive_trigger_message(trigger_event),
+                            )
 
                 await asyncio.sleep(self._telemetry_interval)
         except asyncio.CancelledError:
