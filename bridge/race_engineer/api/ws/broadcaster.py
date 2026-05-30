@@ -9,6 +9,7 @@ from race_engineer.api.ws.messages import (
     build_race_state_message,
     build_telemetry_message,
 )
+from race_engineer.proactive.cooldown import CooldownManager
 from race_engineer.proactive.incident import IncidentReader
 from race_engineer.proactive.lap import PlayerBestLapReader
 from race_engineer.proactive.triggers import TriggerEngine, TriggerSnapshot
@@ -54,6 +55,7 @@ class TelemetryBroadcaster:
         best_lap_reader: PlayerBestLapReader | None = None,
         incident_reader: IncidentReader | None = None,
         trigger_engine: TriggerEngine | None = None,
+        cooldown_manager: CooldownManager | None = None,
         telemetry_interval: float = TELEMETRY_INTERVAL_SECONDS,
         race_state_interval: float | None = RACE_STATE_INTERVAL_SECONDS,
     ) -> None:
@@ -120,6 +122,9 @@ class TelemetryBroadcaster:
         self._trigger_engine = (
             trigger_engine if trigger_engine is not None else TriggerEngine()
         )
+        self._cooldown_manager = (
+            cooldown_manager if cooldown_manager is not None else CooldownManager()
+        )
         self._telemetry_interval = telemetry_interval
         self._race_state_interval = race_state_interval
         self._task: asyncio.Task[None] | None = None
@@ -174,6 +179,7 @@ class TelemetryBroadcaster:
                         if session_key != self._fuel_tracker.session_key:
                             self._fuel_tracker.begin_session(session_key)
                             self._trace_recorder.begin_session(session_key)
+                            self._cooldown_manager.begin_session(session_key)
                             fuel_snapshot = self._fuel_tracker.update(
                                 snapshot.fuel,
                                 laps_completed,
@@ -205,8 +211,9 @@ class TelemetryBroadcaster:
                             gap_ahead_seconds=gap_ahead.gap_seconds,
                             gap_behind_seconds=gap_behind.gap_seconds,
                         )
-                        for trigger_event in self._trigger_engine.evaluate(
-                            trigger_snapshot,
+                        trigger_events = self._trigger_engine.evaluate(trigger_snapshot)
+                        for trigger_event in self._cooldown_manager.filter(
+                            trigger_events,
                         ):
                             await self._manager.broadcast(
                                 build_proactive_trigger_message(trigger_event),
