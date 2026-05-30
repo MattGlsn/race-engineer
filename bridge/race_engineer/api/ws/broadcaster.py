@@ -8,6 +8,7 @@ from race_engineer.api.ws.messages import (
     build_race_state_message,
     build_telemetry_message,
 )
+from race_engineer.coaching.trace import TraceRecorder
 from race_engineer.connection import SdkConnectionService
 from race_engineer.session import SessionInfoReader
 from race_engineer.fuel import (
@@ -45,6 +46,7 @@ class TelemetryBroadcaster:
         fuel_tracker: FuelConsumptionTracker | None = None,
         fuel_projection_engine: FuelProjectionEngine | None = None,
         lap_reader: PlayerLapReader | None = None,
+        trace_recorder: TraceRecorder | None = None,
         telemetry_interval: float = TELEMETRY_INTERVAL_SECONDS,
         race_state_interval: float | None = RACE_STATE_INTERVAL_SECONDS,
     ) -> None:
@@ -95,6 +97,9 @@ class TelemetryBroadcaster:
             if lap_reader is not None
             else PlayerLapReader(sdk=connection_service.sdk)
         )
+        self._trace_recorder = (
+            trace_recorder if trace_recorder is not None else TraceRecorder()
+        )
         self._telemetry_interval = telemetry_interval
         self._race_state_interval = race_state_interval
         self._task: asyncio.Task[None] | None = None
@@ -134,6 +139,7 @@ class TelemetryBroadcaster:
                     snapshot.fuel,
                     laps_completed,
                 )
+                self._trace_recorder.record(snapshot, laps_completed)
                 await self._manager.broadcast(build_telemetry_message(snapshot))
 
                 if self._race_state_interval is not None:
@@ -147,6 +153,7 @@ class TelemetryBroadcaster:
                         )
                         if session_key != self._fuel_tracker.session_key:
                             self._fuel_tracker.begin_session(session_key)
+                            self._trace_recorder.begin_session(session_key)
                             fuel_snapshot = self._fuel_tracker.update(
                                 snapshot.fuel,
                                 laps_completed,

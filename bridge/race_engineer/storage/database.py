@@ -14,6 +14,16 @@ CREATE TABLE IF NOT EXISTS fuel_lap_records (
     created_at REAL NOT NULL,
     UNIQUE(session_key, lap)
 );
+
+CREATE TABLE IF NOT EXISTS lap_traces (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_key TEXT NOT NULL,
+    lap INTEGER NOT NULL,
+    sample_count INTEGER NOT NULL,
+    compressed_data BLOB NOT NULL,
+    created_at REAL NOT NULL,
+    UNIQUE(session_key, lap)
+);
 """
 
 
