@@ -14,6 +14,7 @@ type TranscriptViewProps = {
   voiceVolumeSyncError: string | null;
   bridgeConnected: boolean;
   voiceStatus: "recording" | "idle";
+  voiceHotkey: string;
 };
 
 export function TranscriptView({
@@ -26,6 +27,7 @@ export function TranscriptView({
   voiceVolumeSyncError,
   bridgeConnected,
   voiceStatus,
+  voiceHotkey,
 }: TranscriptViewProps) {
   return (
     <section className="transcript-view" aria-label="Transcript">
@@ -51,7 +53,7 @@ export function TranscriptView({
             {selectedConversation?.title ?? "Transcript"}
           </h2>
         </header>
-        <VoiceRecordingIndicator status={voiceStatus} />
+        <VoiceRecordingIndicator status={voiceStatus} hotkey={voiceHotkey} />
         <TranscriptMessageList
           conversationId={selectedConversationId}
           conversationTitle={selectedConversation?.title ?? null}

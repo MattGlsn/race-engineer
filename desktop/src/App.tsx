@@ -72,6 +72,7 @@ export default function App() {
           voiceVolumeSyncError={voiceVolume.syncError}
           bridgeConnected={bridge.bridgeConnected}
           voiceStatus={bridge.voiceStatus}
+          voiceHotkey={voiceHotkey.hotkey}
         />
       )}
     </AppShell>
